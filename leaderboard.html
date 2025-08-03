@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>FutLog / Leaderboard</title>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Futlog</h2>
+            <i class="fa fa-bars"></i>
+        </div>
+        <ul class="sidebar-menu">
+            <a href="index.html"><i class="fa fa-home"></i> Feed</a>
+            <a href="leaderboard.html" id="active-page"><i class="fa fa-star"></i> Leaderboard</a>
+            <a href="watched.html"><i class="fa fa-eye"></i> Watched</a>
+            <a href="leagues.html"><i class="fa fa-calendar-o"></i> Leagues</a>
+            <a href="predict.html"><i class="fa fa-lightbulb-o"></i> Predict</a>
+            <a href="store.html"><i class="fa fa-shopping-cart"></i> Store</a>
+            <a href="people.html"><i class="fa fa-group"></i> People</a>
+            <a href="#"><i class="fa fa-gear"></i> Settings</a>
+            <a href="help.html"><i class="fa fa-question-circle-o"></i> Help</a>
+        </ul>
+    </div>
+    <div class="main-feed">
+        <div class="searchbar-container">
+            <div class="searchbar">
+                <input type="text" placeholder="Search...">
+            </div>
+            <div class="searchbar-container-info">
+                <a href="">Notifications</a>
+                <a href="">Messages</a>
+                <a href="profile.html"><i class="fa fa-user-circle-o"></i></a>
+            </div>
+        </div>
+    </div>
+    <div class="leaderboard-container">
+        <div class="leaderboard-head">
+            <div class="leaderboard-podium">
+                    <div class="podium-element">
+                        <div class="silver">
+                            <p>2nd</p>
+                            <p>81/100</p>
+                        </div>
+                        <i class="fa fa-user-circle-o"></i>
+                        <p>John Doe</p>
+                    </div>
+                    <div class="podium-element">
+                            <div class="gold">
+                                <p>1nd</p>
+                                <p>81/100</p>
+                            </div>
+                            <i class="fa fa-user-circle-o"></i>
+                            <p>John Doe</p>
+                    </div>
+                    <div class="podium-element">
+                        <div class="bronze">
+                                <p>3nd</p>
+                                <p>81/100</p>
+                            </div>
+                            <i class="fa fa-user-circle-o"></i>
+                            <p>John Doe</p>
+                        </div>
+                    
+                </div>
+                <div class="leaderboard-games-container">
+                    <div class="leaderboard-games-header">
+                        <h2>Upcoming Games</h2>
+                        <a href="predict.html">View All</a>
+                    </div>
+                    <div class="leaderboard-games-list">
+                        <div class="leaderboard-game">
+                            <i class="fa fa-futbol-o"></i>
+                            <div class="leaderboard-game-info">
+                                <p>UEFA Champions league / Match 7</p>
+                                <button>Predict</button>
+                                <p>17:30</p>
+                            </div>
+                            <i class="fa fa-futbol-o"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="leaderboard-body">
+            <div class="leaderboard-date">
+                
+            </div>
+            <div class="leaderboard">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Points</th>
+                            <th>Predictions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td><i class="fa fa-user-circle-o"></i> John Doe</td>
+                            <td>81/100</td>
+                            <td>10/12</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td><i class="fa fa-user-circle-o"></i> Jane Smith</td>
+                            <td>79/100</td>
+                            <td>9/12</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td><i class="fa fa-user-circle-o"></i> Alice Johnson</td>
+                            <td>75/100</td>
+                            <td>8/12</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td><i class="fa fa-user-circle-o"></i> Bob Brown</td>
+                            <td>73/100</td>
+                            <td>7/12</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td><i class="fa fa-user-circle-o"></i> Charlie Davis</td>
+                            <td>70/100</td>
+                            <td>6/12</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

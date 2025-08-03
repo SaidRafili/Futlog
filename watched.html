@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>FutLog / Store</title>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Futlog</h2>
+            <i class="fa fa-bars"></i>
+        </div>
+        <ul class="sidebar-menu">
+            <a href="index.html"><i class="fa fa-home"></i> Feed</a>
+            <a href="leaderboard.html"><i class="fa fa-star"></i> Leaderboard</a>
+            <a href="watched.html" id="active-page"><i class="fa fa-eye"></i> Watched</a>
+            <a href="leagues.html"><i class="fa fa-calendar-o"></i> Leagues</a>
+            <a href="predict.html"><i class="fa fa-lightbulb-o"></i> Predict</a>
+            <a href="store.html"><i class="fa fa-shopping-cart"></i> Store</a>
+            <a href="people.html"><i class="fa fa-group"></i> People</a>
+            <a href="#"><i class="fa fa-gear"></i> Settings</a>
+            <a href="help.html"><i class="fa fa-question-circle-o"></i> Help</a>
+        </ul>
+    </div>
+    <div class="main-feed">
+        <div class="searchbar-container">
+            <div class="searchbar">
+                <input type="text" placeholder="Search...">
+            </div>
+            <div class="searchbar-container-info">
+                <a href="">Notifications</a>
+                <a href="">Messages</a>
+                <a href="profile.html"><i class="fa fa-user-circle-o"></i></a>
+            </div>
+        </div>
+    </div>
+    <div class="watched-container">
+        <div class="watched-header">
+            <div class="watched-user">
+                <i class="fa fa-user-circle-o"></i>
+                <p>John Doe</p>
+            </div>
+            <div class="watched-quick-stats">
+                <div>
+                    <p>Watched</p>
+                    <i>456</i>
+                </div>
+                <div>
+                    <p>Favourite team</p>
+                    <i>Barcelona</i>
+                </div>
+                <div>
+                    <p>Reviews</p>
+                    <i>222</i>
+                </div>
+                <div>
+                    <button>Stats</button>
+                </div>
+            </div>
+        </div>
+        <div class="watched-stats-expanded">
+            <div>
+                <p>Top 5 clubs</p>
+                <ul>
+                    <li>Barcelona</li>
+                    <li>Real Madrid</li>
+                    <li>Manchester City</li>
+                    <li>Bayern Munich</li>
+                    <li>Paris Saint-Germain</li>
+            </div>
+            <div>
+                <p>Top 5 leagues</p>
+                <ul>
+                    <li>Premier League</li>
+                    <li>La Liga</li>
+                    <li>Serie A</li>
+                    <li>Bundesliga</li>
+                    <li>Ligue 1</li>
+                </ul>
+            </div>
+            <div>
+                <p>Avergae match per month</p>
+                <ul>
+                    <li>January: 15</li>
+                    <li>February: 12</li>
+                    <li>March: 18</li>
+                    <li>April: 20</li>
+                    <li>May: 22</li>
+            </div>
+            <div>
+                <p>Ratings</p>
+                <ul>
+                    <li>5 Stars: 120</li>
+                    <li>4 Stars: 200</li>
+                    <li>3 Stars: 100</li>
+                    <li>2 Stars: 30</li>
+                    <li>1 Star: 6</li>
+            </div>
+        </div>
+        <div class="watched-contents">
+            <div class="watched-contents-header">
+                <div>
+                    <p>Watched</p>
+                </div>
+                <div>
+                    <select name="leagues" id="">
+                        <option value="all">All Leagues</option>
+                        <option value="premier-league">Premier League</option>
+                        <option value="la-liga">La Liga</option>
+                        <option value="serie-a">Serie A</option>
+                        <option value="bundesliga">Bundesliga</option>
+                        <option value="ligue-1">Ligue 1</option>
+                        <option value="eredivisie">Eredivisie</option>
+                        <option value="primeira-liga">Primeira Liga</option>
+                        <option value="mls">MLS</option>
+                        <option value="liga-mx">Liga MX</option>
+                        <option value="j-league">J-League</option>
+                    </select>
+                    <select name="rating" id="">
+                        <option value="all">All Ratings</option>
+                        <option value="5-stars">5 Stars</option>
+                        <option value="4-stars">4 Stars</option>
+                        <option value="3-stars">3 Stars</option>
+                        <option value="2-stars">2 Stars</option>
+                        <option value="1-star">1 Star</option>
+                    </select>
+                    <select name="added date" id="">
+                        <option value="all">All Dates</option>
+                        <option value="last-24-hours">Last 24 Hours</option>
+                        <option value="last-7-days">Last 7 Days</option>
+                        <option value="last-30-days">Last 30 Days</option>
+                        <option value="last-90-days">Last 90 Days</option>
+                        <option value="last-year">Last Year</option>
+                    </select>
+                </div>
+            </div>
+            <div class="watched-games">
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+                <div class="watched-game">
+                    <i class="fa fa-futbol-o"></i>
+                    <div class="watched-games-details">
+                        <p>3-1</p>
+                        <p>18:30</p>
+                    </div>
+                    <i class="fa fa-futbol-o"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

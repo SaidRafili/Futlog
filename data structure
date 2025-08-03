@@ -1,0 +1,35 @@
+feed:
+1. home team name
+2. home team logo
+3. away team name
+4. away team logo
+5. game date
+6. game location
+7. game date hour
+8. liked profiles
+
+leaderboard: 
+1. user name
+2. user prediction
+3. user points
+4. user ranks
+5. user picture
+
+watched:
+1. player name
+2. watched games list
+3. favourite team
+4. reviews list
+
+store:
+1. store item name
+2. store item price
+3. store item team
+4. store item season
+5. store item type
+6. store item design
+7. store item colors
+8. store item brand
+9. store item sponsors
+10. store iem release date
+11. store item avg rating

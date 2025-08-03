@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>FutLog / Store</title>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Futlog</h2>
+            <i class="fa fa-bars"></i>
+        </div>
+        <ul class="sidebar-menu">
+            <a href="index.html"><i class="fa fa-home"></i> Feed</a>
+            <a href="leaderboard.html"><i class="fa fa-star"></i> Leaderboard</a>
+            <a href="watched.html"><i class="fa fa-eye"></i> Watched</a>
+            <a href="leagues.html"><i class="fa fa-calendar-o"></i> Leagues</a>
+            <a href="predict.html"><i class="fa fa-lightbulb-o"></i> Predict</a>
+            <a href="store.html" id="active-page"><i class="fa fa-shopping-cart"></i> Store</a>
+            <a href="people.html"><i class="fa fa-group"></i> People</a>
+            <a href="#"><i class="fa fa-gear"></i> Settings</a>
+            <a href="help.html"><i class="fa fa-question-circle-o"></i> Help</a>
+        </ul>
+    </div>
+    <div class="main-feed">
+        <div class="searchbar-container">
+            <div class="searchbar">
+                <input type="text" placeholder="Search...">
+            </div>
+            <div class="searchbar-container-info">
+                <a href="">Notifications</a>
+                <a href="">Messages</a>
+                <a href="profile.html"><i class="fa fa-user-circle-o"></i></a>
+            </div>
+        </div>
+    </div>
+    <div class="store-container">
+        <div class="store-filters">
+            <div class="store-quick-filters">
+                <button>Jersey</button>
+                <button>Shorts</button>
+                <button>Scarf</button>
+                <button>Footwear</button>
+            </div>
+            <div class="store-detailed-filters">
+                <input type="text" name="" id="" placeholder="Search by name...">
+                <select name="" id="">
+                    <option value="">Sort by</option>
+                    <option value="price">Price</option>
+                    <option value="popularity">Popularity</option>
+                    <option value="newest">Newest</option>
+                </select>
+            </div>
+        </div>
+        <div class="store-items">
+            <a href="store-item.html">
+                <div class="store-item">
+                    <img src="img/IT6140_1_APPAREL_Photography_Front_View_white.webp" alt="">
+                    <p>Arsenal Jersey 2024-25</p>
+                    <p id="item-price">150 USD</p>
+                </div>
+            </a>
+            <a href="store-item.html">
+                <div class="store-item">
+                    <img src="img/arsenal-fc-red-scarf.jpg" alt="">
+                    <p>Arsenal Scarves</p>
+                    <p id="item-price">150 USD</p>
+                </div>
+            </a>
+            <a href="store-item.html">
+                <div class="store-item">
+                    <img src="img/Arsenal_25-26_Home_Shorts_White_JI9515_25_outfit.avif" alt="">
+                    <p>Arsenal Full Jersey</p>
+                    <p id="item-price">150 USD</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
