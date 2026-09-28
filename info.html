@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Profile · Futlog</title>
+<title>About · Futlog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Poppins:wght@600;700&family=Prompt:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -21,16 +21,38 @@
   <button class="avatar-btn" aria-label="Account"><svg width="14" height="14" viewBox="0 0 24 24" fill="#1b1a3d"><circle cx="12" cy="8" r="4.5"/><path d="M3 21c0-5 4-7 9-7s9 2 9 7z"/></svg></button>
 </header>
 
-<!-- PROFILE PAGE -->
-<main id="profilePage">
-  <div class="pf-cover" id="pfCover"></div>
-  <div class="pf-wrap">
-    <header class="pf-head" id="pfHead"></header>
-    <div class="pf-body">
-      <nav class="pf-side" id="pfSide" aria-label="Profile sections"></nav>
-      <section><div class="pf-tools" id="pfTools"></div><div id="pfList"></div></section>
-    </div>
-  </div>
+<main class="info">
+  <section id="about">
+    <h1>About Futlog</h1>
+    <p class="lead">Futlog is a diary for football fans. Log the matches you watch, rate them, write reviews, and see what other people made of the same 90 minutes.</p>
+  </section>
+
+  <section id="how">
+    <div class="sec-head"><h2>What you can do</h2></div>
+    <ul>
+      <li>Search matches by team, competition or season, and mark them as watched or liked.</li>
+      <li>Rate a match out of 10 and join the discussion in comments and reviews.</li>
+      <li>Read match analysis and tactics articles from the community.</li>
+      <li>Follow other fans and keep up with them in your feed.</li>
+    </ul>
+  </section>
+
+  <section id="faq">
+    <div class="sec-head"><h2>FAQ</h2></div>
+    <div class="card"><b>Is Futlog free?</b><p>Yes. Browsing, logging and commenting are free.</p></div>
+    <div class="card"><b>Where does the match data come from?</b><p>Team and match details are loaded from our own data files and are added by hand for now, so some matches may be missing.</p></div>
+    <div class="card"><b>How do I report a mistake?</b><p>Use the contact details below and include a link to the match or article.</p></div>
+  </section>
+
+  <section id="contact">
+    <div class="sec-head"><h2>Contact</h2></div>
+    <p>Questions, corrections or ideas? Email <a class="lnk" href="mailto:hello@futlog.example">hello@futlog.example</a> or message us on <a class="lnk" href="https://x.com/futlog" target="_blank" rel="noopener noreferrer">X</a>.</p>
+  </section>
+
+  <section id="privacy">
+    <div class="sec-head"><h2>Privacy &amp; terms</h2></div>
+    <p>We only store what you choose to post: your profile, ratings, comments and reviews. Be respectful to other fans, and don't post content you don't have the right to share. This section is a short summary and will be replaced with full terms before launch.</p>
+  </section>
 </main>
 
 <footer class="site-footer">
@@ -58,11 +80,6 @@
   <div class="ft-bot"><span>© 2026 Futlog. All rights reserved.</span><a href="info.html#privacy">Privacy &amp; terms</a></div>
 </footer>
 
-<script src="app.js"></script>
-<script>
-const P=new URLSearchParams(location.search);
-function route(){showProfile(P.get('u')||'saidrafili',P.get('tab'));}
-route(); loadTeams();
-</script>
+
 </body>
 </html>

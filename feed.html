@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Profile · Futlog</title>
+<title>Feed · Futlog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Poppins:wght@600;700&family=Prompt:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -21,15 +21,20 @@
   <button class="avatar-btn" aria-label="Account"><svg width="14" height="14" viewBox="0 0 24 24" fill="#1b1a3d"><circle cx="12" cy="8" r="4.5"/><path d="M3 21c0-5 4-7 9-7s9 2 9 7z"/></svg></button>
 </header>
 
-<!-- PROFILE PAGE -->
-<main id="profilePage">
-  <div class="pf-cover" id="pfCover"></div>
-  <div class="pf-wrap">
-    <header class="pf-head" id="pfHead"></header>
-    <div class="pf-body">
-      <nav class="pf-side" id="pfSide" aria-label="Profile sections"></nav>
-      <section><div class="pf-tools" id="pfTools"></div><div id="pfList"></div></section>
-    </div>
+<!-- FEED PAGE -->
+<main id="feedPage">
+  <div class="fd-wrap">
+    <section>
+      <div class="fd-head"><h1>Feed</h1>
+        <div class="fd-tabs" id="fdTabs" role="tablist"><button role="tab" data-fa="tab" data-v="latest">Latest</button><button role="tab" data-fa="tab" data-v="top">Top</button><button role="tab" data-fa="tab" data-v="following">Following</button></div></div>
+      <form class="fd-comp" id="fdForm">
+        <input type="text" id="fdInput" placeholder="Share a thought on the game…" maxlength="280" aria-label="Write a post">
+        <div class="fd-row"><select id="fdMatch" aria-label="Tag a match"></select><button type="submit">Post</button></div>
+      </form>
+      <div class="fd-filter" id="fdFilter" hidden></div>
+      <div id="fdList"></div>
+    </section>
+    <aside class="fd-side" id="fdSide"></aside>
   </div>
 </main>
 
@@ -60,8 +65,7 @@
 
 <script src="app.js"></script>
 <script>
-const P=new URLSearchParams(location.search);
-function route(){showProfile(P.get('u')||'saidrafili',P.get('tab'));}
+function route(){showFeed();}
 route(); loadTeams();
 </script>
 </body>
