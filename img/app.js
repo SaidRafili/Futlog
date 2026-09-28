@@ -2,20 +2,33 @@
 const T = {};   // teamId -> { id, n:name, s:abbreviation, c:colour, t:text colour, alt, l:logo, slug, venueId, loc, short }
 let TL = [];    // the same teams as an ordered array (teams.json order)
 
-/* ---------- matches: loaded from fixtures.csv by loadFixtures() ---------- */
-// Shape used everywhere in the UI: { id, h, a, hs, as, ph, pa, comp, leagueId, stage, season, ts, venueId, att }
-//   id = eventId, h / a = teams.json teamId of the home / away team, ts = kick-off (ms, UTC), ph / pa = penalty shoot-out score
+/* ---------- sample matches: replace with your API ---------- */
+// Real matches should reference teams by teamId:  { id:1, h:2, a:3, hs:1, as:0, ... }  (h = home, a = away)
+// The sample rows below use positions in teams.json instead (0 = first team, 1 = second ...);
+// buildSampleMatches() converts them to real teamIds so the demo works with whatever teams.json contains.
+const SAMPLE = [
+  {id:1,h:0,a:1,hs:4,as:2,comp:'UCL',stage:'Final',season:'23/24',img:''},
+  {id:2,h:3,a:4,hs:2,as:2,comp:'Premier League',stage:'Round 33',season:'23/24'},
+  {id:3,h:2,a:0,hs:3,as:2,comp:'La Liga',stage:'El Clásico',season:'23/24'},
+  {id:4,h:5,a:6,hs:1,as:0,comp:'UCL',stage:'Semi-final',season:'22/23'},
+  {id:5,h:7,a:8,hs:0,as:1,comp:'UCL',stage:'Semi-final',season:'23/24'},
+  {id:6,h:9,a:0,hs:1,as:1,comp:'La Liga',stage:'Derby',season:'23/24'},
+  {id:7,h:10,a:11,hs:2,as:0,comp:'Serie A',stage:'Round 30',season:'23/24'},
+  {id:8,h:1,a:2,hs:4,as:1,comp:'Bundesliga',stage:'Round 12',season:'22/23'},
+  {id:9,h:4,a:5,hs:3,as:3,comp:'Premier League',stage:'Round 20',season:'22/23'},
+  {id:10,h:6,a:10,hs:1,as:2,comp:'Serie A',stage:'Derby',season:'22/23'},
+  {id:11,h:0,a:3,hs:3,as:3,comp:'UCL',stage:'Quarter-final',season:'23/24'},
+  {id:12,h:8,a:1,hs:2,as:2,comp:'Bundesliga',stage:'Der Klassiker',season:'23/24'}
+];
 let matches = [];
-const MID = new Map();                       // match id -> match
-const FINISHED = new Set([28,45,46,47]);     // statusId shown as a result: 28 full time, 47 after penalties, 45/46 extra time.
-                                             // Others (1 scheduled, 5/6 postponed/cancelled ...) are stored as 0-0, so they are skipped.
-const LEAGUES = {};                          // optional names, e.g. LEAGUES[745]='Liga Profesional'. Unnamed leagues show as "League 745"
-const leagueName = id => LEAGUES[id] || 'League '+id;
-const TEAM_ALIAS = {};                       // optional manual fixes: { fixtureTeamId: teamsJsonTeamId }
-const TRUST_ID_WHEN_UNVERIFIED = true;       // see resolveTeams(), step 3
-let READY = false;                           // true once teams.json + fixtures.csv are loaded. Before that the show...() page functions do nothing,
-                                            // so a page can call route() straight away (as index.html / match.html do) without redirecting or crashing
-
+function buildSampleMatches(){
+  const n=TL.length;
+  matches=SAMPLE.map(m=>{
+    const h=m.h%n; let a=m.a%n; if(a===h&&n>1) a=(a+1)%n;          // never a team against itself
+    return {...m,h:TL[h].id,a:TL[a].id};
+  });
+  updates[0].t=`New match added: ${T[matches[0].h].n} ${matches[0].hs}–${matches[0].as} ${T[matches[0].a].n} (${matches[0].comp} ${matches[0].stage} ${matches[0].season})`;
+}
 const comments = [
   {u:'maria_10',ago:'2h',likes:214,m:1,text:'Best final in a decade. Nobody left their seat after the third goal.'},
   {u:'kenji',ago:'5h',likes:167,m:3,text:'The second half was pure chaos, and I loved every minute of it.'},
@@ -37,17 +50,15 @@ const NOEL=document.createElement('div'); // stands in for elements that live on
 const $ = id => document.getElementById(id)||NOEL;
 const norm = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const byId = id => MID.get(id);
-const cs = m => m.comp + (m.stage ? ' '+m.stage : '');                       // "League 745 Pens 4–3"
-const cst = m => esc(m.comp) + (m.stage ? ' / '+esc(m.stage) : '');
-const label = m => `${T[m.h].n} ${m.hs}–${m.as} ${T[m.a].n}, ${cs(m)} ${m.season}`;
+const byId = id => matches.find(m=>m.id===id);
+const label = m => `${T[m.h].n} ${m.hs}–${m.as} ${T[m.a].n}, ${m.comp} ${m.stage} ${m.season}`;
 const hue = s => [...s].reduce((a,c)=>a+c.charCodeAt(0),0)*37%360;
 
 function matchCard(m){
   const h=T[m.h], a=T[m.a];
   const img = m.img ? `background-image:url('${esc(m.img)}'),linear-gradient(160deg,var(--a),var(--b));` : '';
   return `<a class="match" href="match.html?id=${m.id}" aria-label="${esc(label(m))}">
-    <div class="m-top"><span>${cst(m)}</span><span>${m.season}</span></div>
+    <div class="m-top"><span>${esc(m.comp)} / ${esc(m.stage)}</span><span>${m.season}</span></div>
     <div class="m-photo" style="--a:${h.c};--b:${a.c};${img}"></div>
     <div class="m-score">
       <span style="background:${h.c};color:${h.t}">${cr(h)}${m.hs}</span>
@@ -67,7 +78,7 @@ function commentCard(c){
     <div class="c-foot">
       <a class="chip" href="match.html?id=${m.id}" aria-label="${esc(label(m))}">
         <span class="mini">${mb(h)}${m.hs}–${m.as}${mb(a)}</span>
-        <span class="t">${esc(cs(m))}</span></a>
+        <span class="t">${esc(m.comp)} ${esc(m.stage)}</span></a>
       <button class="like" aria-pressed="false" data-n="${c.likes}"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.700-8 11-8 11z"/></svg><span>${c.likes}</span></button>
     </div></article>`;
 }
@@ -100,15 +111,14 @@ function search(q,league,season){
     return terms.every(t=>hay.includes(t)) && (!league||m.comp===league) && (!season||m.season===season);
   });
 }
-function showResults(q,league,season){ if(!READY) return;
+function showResults(q,league,season){
   $('home').hidden=true; $('matchPage').hidden=true; $('articlePage').hidden=true; $('results').hidden=false;
   $('q').value=q; $('rq').textContent=q;
   $('fLeague').value=league; $('fSeason').value=season;
   const r=search(q,league,season);
-  const CAP=120;
-  $('resultGrid').innerHTML=grid(r.slice(0,CAP))+(r.length>CAP?`<p class="empty" style="grid-column:1/-1">Showing the latest ${CAP} of ${r.length} matches. Add a team, league or season to narrow it down.</p>`:'');
+  $('resultGrid').innerHTML=grid(r);
   $('empty').hidden=r.length>0;
-  $('empty').textContent=`No matches found for “${q}”. Try a team name like “${matches[0]?T[matches[0].h].short:'Belgrano'}”, or clear the filters.`;
+  $('empty').textContent=`No matches found for “${q}”. Try a team name like “Real Madrid”, or clear the filters.`;
 }
 function go(q,league='',season=''){
   const p=new URLSearchParams({q}); if(league)p.set('league',league); if(season)p.set('season',season);
@@ -141,23 +151,21 @@ const fillers=[
 const MS={}; const st=id=>MS[id]||(MS[id]={watched:false,liked:false,rating:0,posted:[]});
 let cur=null;
 
-// Venue names are not in the data: only ids. The home team's teams.json venue is used when the ids agree.
-function matchVenue(m){
-  const h=T[m.h];
-  if(!(m.venueId>0)) return 'Venue unknown';
-  return h.venueId===m.venueId ? venueOf(h) : 'Venue #'+m.venueId;
-}
 function detail(m){
-  const b=new Date(m.ts), p2=n=>String(n).padStart(2,'0');
-  const views=8000+(m.id*7919)%40000;                       // views / likes / ratings / comment counts are still demo numbers
+  const b=new Date(Date.UTC(m.season==='22/23'?2023:2024,0,1)+m.id*17*864e5);
+  const goals=[];
+  for(let i=0;i<m.hs;i++)goals.push({min:(m.id*7+i*29)%86+3,t:m.h});
+  for(let i=0;i<m.as;i++)goals.push({min:(m.id*11+i*31+13)%86+3,t:m.a});
+  goals.sort((x,y)=>x.min-y.min);
+  const views=8000+(m.id*7919)%40000;
   const key=x=>[x.h,x.a].sort().join();
-  const pair=matches.filter(x=>key(x)===key(m)).reverse();  // every meeting of these two teams, oldest first
-  return {date:`${p2(b.getUTCDate())} ${MON[b.getUTCMonth()]} ${String(b.getUTCFullYear()).slice(2)}`,
-    views,likes:Math.round(views*.27),ccount:300+(m.id*37)%2900,avg:6.5+((m.id*13)%30)/10,rcount:Math.round(views*.06),
-    venue:matchVenue(m),pair,n:pair.indexOf(m)+1,att:m.att>0?m.att.toLocaleString('en-US'):'—',ko:`${p2(b.getUTCHours())}:${p2(b.getUTCMinutes())} UTC`};
+  const pair=matches.filter(x=>key(x)===key(m));
+  return {date:`${String(b.getUTCDate()).padStart(2,'0')} ${MON[b.getUTCMonth()]} ${String(b.getUTCFullYear()).slice(2)}`,
+    goals,views,likes:Math.round(views*.27),ccount:300+(m.id*37)%2900,avg:6.5+((m.id*13)%30)/10,rcount:Math.round(views*.06),
+    venue:venueOf(T[m.h]),pair,n:pair.indexOf(m)+1,att:(35000+(m.id*4111)%45000).toLocaleString('en-US'),ko:`${19+m.id%3}:${m.id%2?'00':'45'}`};
 }
 
-function showMatch(id){ if(!READY) return;
+function showMatch(id){
   const m=byId(id); if(!m){location.href='index.html';return;}
   cur=m; const h=T[m.h],a=T[m.a],d=detail(m);
   $('home').hidden=true; $('results').hidden=true; $('articlePage').hidden=true; $('matchPage').hidden=false;
@@ -169,16 +177,14 @@ function showMatch(id){ if(!READY) return;
   $('mpDate').textContent=d.date; $('mpScore').textContent=`${m.hs} - ${m.as}`;
   const full=COMPN[m.comp]||m.comp;
   $('mpCred').innerHTML=`<div class="cred-strip" style="background:${COMPC[m.comp]||'#222'}">${esc(m.comp)}</div>
-    <div class="cred-body"><div>${m.stage?esc(m.stage)+' / ':''}${m.season}
+    <div class="cred-body"><div>${esc(m.stage)} / ${m.season}
       <small>${d.pair.length>1?`<span class="red">${ord(d.n)}</span> of ${d.pair.length} meetings on record`:`<span class="red">Only</span> meeting on record`}</small></div>
       <div>${esc(d.venue)}</div></div>
     <div class="emblem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg>${esc(full)}</div>`;
   const ph=$('mpPhoto'); ph.style.setProperty('--a',h.c); ph.style.setProperty('--b',a.c);
   ph.style.backgroundImage=m.img?`url('${esc(m.img)}')`:'';
   $('mpMore').innerHTML=`<dt>Kick-off</dt><dd>${d.ko}</dd><dt>Attendance</dt><dd>${d.att}</dd><dt>Competition</dt><dd>${esc(full)}</dd>`;
-  // the fixtures data has scores but no scorers / minutes, so show goals per team instead of a timeline
-  $('mpGoals').innerHTML=(m.hs+m.as?[[m.h,m.hs],[m.a,m.as]].filter(x=>x[1]).map(([t,n])=>`<li><b>${n}</b>${mb(T[t])}${n>1?'goals':'goal'}</li>`).join(''):'<li>No goals</li>')
-    +(m.ph+m.pa?`<li><b>Pens</b>${m.ph}–${m.pa}</li>`:'');
+  $('mpGoals').innerHTML=d.goals.length?d.goals.map(g=>`<li><b>${g.min}'</b>${mb(T[g.t])}Goal</li>`).join(''):'<li>No goals</li>';
   $('mpReviews').innerHTML=reviews.map((r,i)=>{
     const col=r.r>=9?'#6ee7a0':r.r===8?'#ffd84a':'#ff9f6b';
     return `<a class="review" href="match.html?id=${m.id}" style="--stripe:${col};--a:${i%2?a.c:h.c};--b:${i%2?h.c:a.c}"><i></i>
@@ -260,7 +266,7 @@ const ARI={
   share:'<svg viewBox="0 0 24 24"><path d="M4 12v8h16v-8M12 3v13M7 8l5-5 5 5"/></svg>',
   save:'<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>'};
 
-function showArticle(id){ if(!READY) return;
+function showArticle(id){
   const a=allArticles.find(x=>x.id===id); if(!a){location.href='index.html';return;}
   curA=a; const au=AUTH[a.au];
   $('home').hidden=true; $('results').hidden=true; $('matchPage').hidden=true; $('articlePage').hidden=false;
@@ -334,7 +340,7 @@ function getUser(h){
   const ai=aIdx(h), seed=[...h].reduce((s,c)=>(s*31+c.charCodeAt(0))%100003,7);
   const r=(k,n)=>(seed*(k+5)*(k+11)+k*7919)%n;
   const name=ai>=0?AUTH[ai].n:(h.replace(/[._\d]+/g,' ').trim().replace(/\b\w/g,c=>c.toUpperCase())||h);
-  const watched=matches.slice(0,60).filter((m,k)=>h==='saidrafili'||r(k,5)<3);   // demo profiles only draw from the 60 latest matches
+  const watched=matches.filter((m,k)=>h==='saidrafili'||r(k,5)<3);
   const pick=(k,n)=>{const l=watched.filter((m,i)=>r(i+k,n)===0);return l.length?l:watched.slice(0,1)};
   const others=POOL.filter(p=>p!==h), list=(k)=>{const l=others.filter((p,i)=>r(i+k,2)===0);return l.length>2?l:others.slice(0,3)};
   return PU[h]={h,name,watched,onsite:pick(20,6),liked:pick(40,3),
@@ -343,7 +349,7 @@ function getUser(h){
     bio:ai>=0?AUTH[ai].bio:'Football fan. Here for the matches, the arguments and the replays.',
     fav:TL[r(9,12)%TL.length],loc:['Baku','Madrid','Manchester','Milan','Munich','Lisbon'][r(10,6)],joined:2019+r(11,6)};
 }
-function showProfile(h,tab){ if(!READY) return;
+function showProfile(h,tab){
   if(!PTABS.some(t=>t[0]===tab))tab='matches';
   for(const id of ['home','results','matchPage','articlePage'])$(id).hidden=true;
   $('profilePage').hidden=false;
@@ -401,9 +407,7 @@ document.querySelector('.avatar-btn').addEventListener('click',()=>location.href
 // Reads teams.json (array of { teamId, displayName, abbreviation, color, alternateColor, logoURL, venueId, ... })
 // and fills T[teamId] + TL. Matches reference teams by teamId, e.g. { h:2, a:3, ... }.
 const hex=(v,d)=>{const s=String(v??'').replace('#','').trim(); return '#'+(/^[0-9a-f]{1,6}$/i.test(s)?s.padStart(6,'0'):d);};
-let teamsLoad=null;
-function loadTeams(url){ return teamsLoad||(teamsLoad=fetchTeams(url)); }   // pages call loadTeams() too: they get the same promise, the file is read once
-async function fetchTeams(url='teams.json'){
+async function loadTeams(url='/teams.json'){
   const res=await fetch(url); if(!res.ok) throw new Error(url+' returned HTTP '+res.status);
   const list=await res.json(); if(!Array.isArray(list)) throw new Error(url+' must contain an array of teams');
   for(const k of Object.keys(T)) delete T[k];
@@ -421,87 +425,6 @@ async function fetchTeams(url='teams.json'){
   if(!TL.length) throw new Error(url+' contains no teams');
 }
 
-/* ---------- fixtures.csv ---------- */
-async function loadFixtures(url='fixtures.csv'){
-  const res=await fetch(url); if(!res.ok) throw new Error(url+' returned HTTP '+res.status);
-  const lines=(await res.text()).split('\n'), col={};
-  lines[0].trim().split(',').forEach((k,i)=>col[k.trim()]=i);
-  for(const k of ['eventId','date','leagueId','venueId','attendance','homeTeamId','awayTeamId','homeTeamScore','awayTeamScore','homeTeamShootoutScore','awayTeamShootoutScore','statusId'])
-    if(!(k in col)) throw new Error(url+' is missing the "'+k+'" column');
-  const num=(f,k)=>+f[col[k]]||0, rows=[];
-  for(let i=1;i<lines.length;i++){
-    if(!lines[i].trim()) continue;
-    const f=lines[i].split(',');
-    rows.push({id:num(f,'eventId'),ts:Date.parse(f[col.date].trim().replace(' ','T')+'Z')||0,leagueId:num(f,'leagueId'),venueId:num(f,'venueId'),att:num(f,'attendance'),
-      h:num(f,'homeTeamId'),a:num(f,'awayTeamId'),hs:num(f,'homeTeamScore'),as:num(f,'awayTeamScore'),
-      ph:num(f,'homeTeamShootoutScore'),pa:num(f,'awayTeamShootoutScore'),status:num(f,'statusId')});
-  }
-  if(!rows.length) throw new Error(url+' contains no rows');
-  return rows;
-}
-
-// fixtures.csv has team ids only, and the ids in teams.json can't be trusted, so teams are identified by their HOME GROUND:
-//  the venue where a fixture team plays most of its home games is compared with the venueId of every team in teams.json.
-//  1. teamId and home venue agree                       -> confirmed
-//  2. no id match, but exactly one team in teams.json owns that home venue -> matched by venue (id ignored)
-//  3. id match only (venue can't be checked, e.g. a different venue id in each file) -> used only if the team plays in a league
-//     where other teams were confirmed by 1/2, so unrelated clubs that merely share an id are not picked up
-// Returns Map(fixtureTeamId -> teams.json teamId). Fixture teams that are not in teams.json are left out.
-function resolveTeams(rows){
-  const cnt=new Map(), leagues=new Map(), ids=new Set();
-  for(const r of rows){
-    ids.add(r.h); ids.add(r.a);
-    for(const id of [r.h,r.a]){ let l=leagues.get(id); if(!l) leagues.set(id,l=new Set()); l.add(r.leagueId); }
-    if(r.venueId>0){ let m=cnt.get(r.h); if(!m) cnt.set(r.h,m=new Map()); m.set(r.venueId,(m.get(r.venueId)||0)+1); }
-  }
-  const home=new Map();                                   // fixtureTeamId -> most used home venue
-  for(const [id,m] of cnt){ let v=0,c=0,n=0; for(const [k,x] of m){ n+=x; if(x>c){c=x;v=k;} } home.set(id,{venue:v,n,share:c/n}); }
-  const byVenue={}; for(const t of TL) if(t.venueId>0) (byVenue[t.venueId]||(byVenue[t.venueId]=[])).push(t);
-
-  const map=new Map(), claimed=new Set(), repaired=[], n={alias:0,confirmed:0,byVenue:0,byId:0,notInTeamsJson:0};
-  const take=(fid,t,k)=>{ map.set(fid,t.id); claimed.add(t.id); n[k]++; };
-  for(const fid of ids){                                                     // 1
-    const al=TEAM_ALIAS[fid]; if(al!=null&&T[al]){ take(fid,T[al],'alias'); continue; }
-    const t=T[fid], e=home.get(fid);
-    if(t&&e&&e.venue===t.venueId) take(fid,t,'confirmed');
-  }
-  for(const fid of ids){                                                     // 2
-    if(map.has(fid)) continue;
-    const e=home.get(fid), own=e&&e.n>=3&&e.share>=.6?byVenue[e.venue]:null;
-    if(own&&own.length===1&&!claimed.has(own[0].id)){ take(fid,own[0],'byVenue'); repaired.push({fixtureTeamId:fid,teamsJsonId:own[0].id,team:own[0].n}); }
-  }
-  const verified={};                                                         // leagueId -> number of confirmed teams playing in it
-  for(const fid of map.keys()) for(const l of leagues.get(fid)) verified[l]=(verified[l]||0)+1;
-  for(const fid of ids){                                                     // 3
-    if(map.has(fid)) continue;
-    const t=T[fid];
-    if(TRUST_ID_WHEN_UNVERIFIED&&t&&!claimed.has(t.id)&&[...leagues.get(fid)].some(l=>verified[l]>=2)) take(fid,t,'byId');
-    else n.notInTeamsJson++;
-  }
-  console.info('Futlog team matching (fixtures.csv -> teams.json):',n);
-  if(repaired.length) console.info('Matched by venue, not by id:',repaired);
-  return map;
-}
-
-function buildMatches(rows){
-  const map=resolveTeams(rows), out=[];
-  for(const r of rows){
-    if(!FINISHED.has(r.status)) continue;
-    const h=map.get(r.h), a=map.get(r.a); if(h==null||a==null||h===a) continue;
-    out.push({id:r.id,h,a,hs:r.hs,as:r.as,ph:r.ph,pa:r.pa,leagueId:r.leagueId,comp:leagueName(r.leagueId),
-      stage:r.ph+r.pa>0?`Pens ${r.ph}–${r.pa}`:'',season:String(new Date(r.ts).getUTCFullYear()),ts:r.ts,venueId:r.venueId,att:r.att});
-  }
-  if(!out.length) throw new Error('none of the finished matches in fixtures.csv involve two teams from teams.json');
-  out.sort((x,y)=>y.ts-x.ts||y.id-x.id);                   // newest first
-  matches=out; MID.clear(); for(const m of out) MID.set(m.id,m);
-  console.info(`Futlog: ${out.length} matches shown, ${out.length?new Date(out[out.length-1].ts).toISOString().slice(0,10)+' to '+new Date(out[0].ts).toISOString().slice(0,10):''}`);
-  // the demo comments / articles / updates used to point at match ids 1..12: point them at the 12 latest matches
-  const pick=n=>matches[Math.min(n-1,matches.length-1)].id;
-  for(const c of comments) c.m=pick(c.m);
-  for(const x of allArticles) x.ms=x.ms.map(pick);
-  const m0=matches[0]; updates[0].h='match.html?id='+m0.id;
-  updates[0].t=`New match added: ${T[m0.h].n} ${m0.hs}–${m0.as} ${T[m0.a].n} (${cs(m0)} ${m0.season})`;
-}
 /* ---------- feed ---------- */
 const FT=['Best final in a decade. Nobody left their seat after the third goal.','The second half was pure chaos, and I loved every minute of it.','Two coaches, zero fear. This is why we watch the knockout rounds.','That equaliser came from nowhere. Still shaking.','Keeper of the match by a distance.','Watched it in a bar full of rivals. Never heard a quieter room.','Fair result, but the last ten minutes were far too stressful.','The midfield battle decided this and nobody is talking about it.','Would pay double to see that rematch.','Referee had a decent game for once.','Rewatching the build-up to the second goal. Perfect movement.','That atmosphere is why I love this sport.'];
 const FR=['Agreed, the tempo was unreal.','Not sure about that, but fair point.','Rewatching it right now.','This is the take.'];
@@ -513,10 +436,10 @@ const buildFeed=()=>{ if(!matches.length){FEED=[];return;}
 const FS={tab:'latest',m:0,liked:new Set(),open:new Set()}; let fid=100;
 const tAgo=n=>n<1?'just now':n<60?n+'m':n<1440?Math.floor(n/60)+'h':Math.floor(n/1440)+'d';
 const uHref=u=>'profile.html?u='+(u==='you'?'saidrafili':esc(u));
-const fdMatch=m=>{const h=T[m.h],a=T[m.a];return `<a class="p-match" href="match.html?id=${m.id}" style="--a:${h.c};--b:${a.c}" aria-label="${esc(label(m))}"><span class="mini">${mb(h)}${m.hs}–${m.as}${mb(a)}</span><span>${[m.comp,m.stage,m.season].filter(Boolean).map(esc).join(' · ')}</span></a>`};
+const fdMatch=m=>{const h=T[m.h],a=T[m.a];return `<a class="p-match" href="match.html?id=${m.id}" style="--a:${h.c};--b:${a.c}" aria-label="${esc(label(m))}"><span class="mini">${mb(h)}${m.hs}–${m.as}${mb(a)}</span><span>${esc(m.comp)} · ${esc(m.stage)} · ${m.season}</span></a>`};
 const ICO={heart:'<svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z"/></svg>',chat:'<svg width="15" height="15" viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4z"/></svg>',link:'<svg width="15" height="15" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'};
-const renderFeedMatchOptions=()=>{ $('fdMatch').innerHTML='<option value="0">Tag a match (optional)</option>'+matches.slice(0,100).map(m=>`<option value="${m.id}">${esc(label(m))}</option>`).join(''); };
-function showFeed(){ if(!READY) return;
+const renderFeedMatchOptions=()=>{ $('fdMatch').innerHTML='<option value="0">Tag a match (optional)</option>'+matches.map(m=>`<option value="${m.id}">${esc(label(m))}</option>`).join(''); };
+function showFeed(){
   for(const id of ['home','results','matchPage','articlePage']) $(id).hidden=true;
   $('feedPage').hidden=false; document.title='Feed · Futlog'; renderFeed(); scrollTo(0,0);
 }
@@ -565,35 +488,29 @@ $('feedPage').addEventListener('submit',e=>{
   FEED.find(p=>p.id===+e.target.dataset.id).rep.push({u:'you',text,min:0}); renderFeed();
 });
 
-/* ---------- start-up ---------- */
-// Each page (index.html, match.html ...) defines its own route(), e.g.  function route(){ showMatch(+P.get('id')); }
-// app.js loads teams.json + fixtures.csv by itself, and calls that route() once the data is ready.
-// A page that doesn't define route() gets defaultRoute(), which picks the page from the file name.
-function defaultRoute(){
+/* ---------- start-up: load teams.json, then render the current page ---------- */
+function route(){
   const p=new URLSearchParams(location.search);
   const page=(location.pathname.split('/').pop()||'index').replace(/\.html?$/i,'').toLowerCase();
+  renderFilters(); renderFeedMatchOptions();
   switch(page){
     case 'match':   return showMatch(+p.get('id'));
     case 'article': return showArticle(+p.get('id'));
     case 'profile': return showProfile(p.get('u')||'saidrafili',p.get('tab')||'matches');
     case 'search':  return showResults(p.get('q')||'',p.get('league')||'',p.get('season')||'');
     case 'feed':    return showFeed();
+    default:        return renderHome();
   }
 }
 // Other scripts can wait for the data with:  await teamsReady
 const teamsReady=(async()=>{
   try{
-    const [,rows]=await Promise.all([loadTeams(),loadFixtures()]);
-    buildMatches(rows); buildFeed();
-    if(document.readyState==='loading') await new Promise(r=>document.addEventListener('DOMContentLoaded',r)); // the page's own inline script (route) has run
-    READY=true;
-    renderFilters(); renderFeedMatchOptions();
-    if($('topMatches')!==NOEL) renderHome();                       // home page lists
-    (typeof route==='function'?route:defaultRoute)();
+    await loadTeams();
+    buildSampleMatches(); buildFeed(); route();
   }catch(err){
     console.error('Futlog: could not start',err);
     document.body.insertAdjacentHTML('afterbegin',
-      '<p style="margin:0;padding:12px 16px;background:#7a1010;color:#fff;font:14px system-ui">Could not start ('+esc(err.message)+'). '
-      +'If a file failed to load, open the site through a local server (e.g. <code>npx serve</code>), not file://.</p>');
+      '<p style="margin:0;padding:12px 16px;background:#7a1010;color:#fff;font:14px system-ui">Could not load teams.json ('+esc(err.message)+'). '
+      +'Open the site through a local server (e.g. <code>npx serve</code>), not file://.</p>');
   }
 })();

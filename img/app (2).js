@@ -13,8 +13,6 @@ const LEAGUES = {};                          // optional names, e.g. LEAGUES[745
 const leagueName = id => LEAGUES[id] || 'League '+id;
 const TEAM_ALIAS = {};                       // optional manual fixes: { fixtureTeamId: teamsJsonTeamId }
 const TRUST_ID_WHEN_UNVERIFIED = true;       // see resolveTeams(), step 3
-let READY = false;                           // true once teams.json + fixtures.csv are loaded. Before that the show...() page functions do nothing,
-                                            // so a page can call route() straight away (as index.html / match.html do) without redirecting or crashing
 
 const comments = [
   {u:'maria_10',ago:'2h',likes:214,m:1,text:'Best final in a decade. Nobody left their seat after the third goal.'},
@@ -100,7 +98,7 @@ function search(q,league,season){
     return terms.every(t=>hay.includes(t)) && (!league||m.comp===league) && (!season||m.season===season);
   });
 }
-function showResults(q,league,season){ if(!READY) return;
+function showResults(q,league,season){
   $('home').hidden=true; $('matchPage').hidden=true; $('articlePage').hidden=true; $('results').hidden=false;
   $('q').value=q; $('rq').textContent=q;
   $('fLeague').value=league; $('fSeason').value=season;
@@ -157,7 +155,7 @@ function detail(m){
     venue:matchVenue(m),pair,n:pair.indexOf(m)+1,att:m.att>0?m.att.toLocaleString('en-US'):'—',ko:`${p2(b.getUTCHours())}:${p2(b.getUTCMinutes())} UTC`};
 }
 
-function showMatch(id){ if(!READY) return;
+function showMatch(id){
   const m=byId(id); if(!m){location.href='index.html';return;}
   cur=m; const h=T[m.h],a=T[m.a],d=detail(m);
   $('home').hidden=true; $('results').hidden=true; $('articlePage').hidden=true; $('matchPage').hidden=false;
@@ -260,7 +258,7 @@ const ARI={
   share:'<svg viewBox="0 0 24 24"><path d="M4 12v8h16v-8M12 3v13M7 8l5-5 5 5"/></svg>',
   save:'<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>'};
 
-function showArticle(id){ if(!READY) return;
+function showArticle(id){
   const a=allArticles.find(x=>x.id===id); if(!a){location.href='index.html';return;}
   curA=a; const au=AUTH[a.au];
   $('home').hidden=true; $('results').hidden=true; $('matchPage').hidden=true; $('articlePage').hidden=false;
@@ -343,7 +341,7 @@ function getUser(h){
     bio:ai>=0?AUTH[ai].bio:'Football fan. Here for the matches, the arguments and the replays.',
     fav:TL[r(9,12)%TL.length],loc:['Baku','Madrid','Manchester','Milan','Munich','Lisbon'][r(10,6)],joined:2019+r(11,6)};
 }
-function showProfile(h,tab){ if(!READY) return;
+function showProfile(h,tab){
   if(!PTABS.some(t=>t[0]===tab))tab='matches';
   for(const id of ['home','results','matchPage','articlePage'])$(id).hidden=true;
   $('profilePage').hidden=false;
@@ -401,9 +399,7 @@ document.querySelector('.avatar-btn').addEventListener('click',()=>location.href
 // Reads teams.json (array of { teamId, displayName, abbreviation, color, alternateColor, logoURL, venueId, ... })
 // and fills T[teamId] + TL. Matches reference teams by teamId, e.g. { h:2, a:3, ... }.
 const hex=(v,d)=>{const s=String(v??'').replace('#','').trim(); return '#'+(/^[0-9a-f]{1,6}$/i.test(s)?s.padStart(6,'0'):d);};
-let teamsLoad=null;
-function loadTeams(url){ return teamsLoad||(teamsLoad=fetchTeams(url)); }   // pages call loadTeams() too: they get the same promise, the file is read once
-async function fetchTeams(url='teams.json'){
+async function loadTeams(url='teams.json'){
   const res=await fetch(url); if(!res.ok) throw new Error(url+' returned HTTP '+res.status);
   const list=await res.json(); if(!Array.isArray(list)) throw new Error(url+' must contain an array of teams');
   for(const k of Object.keys(T)) delete T[k];
@@ -516,7 +512,7 @@ const uHref=u=>'profile.html?u='+(u==='you'?'saidrafili':esc(u));
 const fdMatch=m=>{const h=T[m.h],a=T[m.a];return `<a class="p-match" href="match.html?id=${m.id}" style="--a:${h.c};--b:${a.c}" aria-label="${esc(label(m))}"><span class="mini">${mb(h)}${m.hs}–${m.as}${mb(a)}</span><span>${[m.comp,m.stage,m.season].filter(Boolean).map(esc).join(' · ')}</span></a>`};
 const ICO={heart:'<svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z"/></svg>',chat:'<svg width="15" height="15" viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4z"/></svg>',link:'<svg width="15" height="15" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'};
 const renderFeedMatchOptions=()=>{ $('fdMatch').innerHTML='<option value="0">Tag a match (optional)</option>'+matches.slice(0,100).map(m=>`<option value="${m.id}">${esc(label(m))}</option>`).join(''); };
-function showFeed(){ if(!READY) return;
+function showFeed(){
   for(const id of ['home','results','matchPage','articlePage']) $(id).hidden=true;
   $('feedPage').hidden=false; document.title='Feed · Futlog'; renderFeed(); scrollTo(0,0);
 }
@@ -565,31 +561,25 @@ $('feedPage').addEventListener('submit',e=>{
   FEED.find(p=>p.id===+e.target.dataset.id).rep.push({u:'you',text,min:0}); renderFeed();
 });
 
-/* ---------- start-up ---------- */
-// Each page (index.html, match.html ...) defines its own route(), e.g.  function route(){ showMatch(+P.get('id')); }
-// app.js loads teams.json + fixtures.csv by itself, and calls that route() once the data is ready.
-// A page that doesn't define route() gets defaultRoute(), which picks the page from the file name.
-function defaultRoute(){
+/* ---------- start-up: load teams.json, then render the current page ---------- */
+function route(){
   const p=new URLSearchParams(location.search);
   const page=(location.pathname.split('/').pop()||'index').replace(/\.html?$/i,'').toLowerCase();
+  renderFilters(); renderFeedMatchOptions();
   switch(page){
     case 'match':   return showMatch(+p.get('id'));
     case 'article': return showArticle(+p.get('id'));
     case 'profile': return showProfile(p.get('u')||'saidrafili',p.get('tab')||'matches');
     case 'search':  return showResults(p.get('q')||'',p.get('league')||'',p.get('season')||'');
     case 'feed':    return showFeed();
+    default:        return renderHome();
   }
 }
 // Other scripts can wait for the data with:  await teamsReady
 const teamsReady=(async()=>{
   try{
     const [,rows]=await Promise.all([loadTeams(),loadFixtures()]);
-    buildMatches(rows); buildFeed();
-    if(document.readyState==='loading') await new Promise(r=>document.addEventListener('DOMContentLoaded',r)); // the page's own inline script (route) has run
-    READY=true;
-    renderFilters(); renderFeedMatchOptions();
-    if($('topMatches')!==NOEL) renderHome();                       // home page lists
-    (typeof route==='function'?route:defaultRoute)();
+    buildMatches(rows); buildFeed(); route();
   }catch(err){
     console.error('Futlog: could not start',err);
     document.body.insertAdjacentHTML('afterbegin',
