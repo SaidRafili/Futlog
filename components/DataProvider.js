@@ -5,7 +5,7 @@ import { loadAll } from '@/lib/data';
 export const DataContext = createContext({ status: 'loading' });
 export const useData = () => useContext(DataContext);
 
-// Loads teams (PostgreSQL) + fixtures.csv once for the whole site and shares the result.
+// Loads teams + fixtures (PostgreSQL) once for the whole site and shares the result.
 // Views render nothing until status === 'ready'.
 export default function DataProvider({ children }) {
   const [state, setState] = useState({ status: 'loading' });
@@ -29,7 +29,7 @@ export default function DataProvider({ children }) {
     <DataContext.Provider value={value}>
       {state.status === 'error' && (
         <p style={{ margin: 0, padding: '12px 16px', background: '#7a1010', color: '#fff', font: '14px system-ui' }}>
-          Could not start ({state.error.message}). Check that PostgreSQL is running, <code>DATABASE_URL</code> is set in <code>.env.local</code>, and <code>fixtures.csv</code> is in the <code>public/</code> folder.
+          Could not start ({state.error.message}). Check that <code>DATABASE_URL</code> is set, the <code>teams</code> database exists, and the <code>teams</code> and <code>fixtures</code> tables are filled.
         </p>
       )}
       {children}

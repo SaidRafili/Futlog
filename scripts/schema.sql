@@ -74,3 +74,32 @@ CREATE TRIGGER users_set_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE 
 
 DROP TRIGGER IF EXISTS articles_set_updated_at ON articles;
 CREATE TRIGGER articles_set_updated_at BEFORE UPDATE ON articles FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+
+-- =====================================================================
+-- FIXTURES  (replaces public/fixtures.csv)
+-- =====================================================================
+-- No foreign keys to teams on purpose: the app matches fixture teams to teams by home venue,
+-- because ids in the two data sources don't always agree.
+CREATE TABLE IF NOT EXISTS fixtures (
+    event_id          INT PRIMARY KEY,               -- eventId, used in /match/[id]
+    season_type       INT,
+    league_id         INT NOT NULL,
+    event_date        TIMESTAMPTZ NOT NULL,          -- CSV dates are UTC
+    venue_id          INT,
+    attendance        INT NOT NULL DEFAULT 0,
+    home_team_id      INT NOT NULL,
+    away_team_id      INT NOT NULL,
+    home_team_winner  BOOLEAN,
+    away_team_winner  BOOLEAN,
+    home_team_score   INT NOT NULL DEFAULT 0,
+    away_team_score   INT NOT NULL DEFAULT 0,
+    home_shootout_score INT NOT NULL DEFAULT 0,
+    away_shootout_score INT NOT NULL DEFAULT 0,
+    status_id         INT NOT NULL,                  -- 28 full time, 45/46 extra time, 47 pens
+    update_time       TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS fixtures_date_idx   ON fixtures (event_date DESC);
+CREATE INDEX IF NOT EXISTS fixtures_home_idx   ON fixtures (home_team_id);
+CREATE INDEX IF NOT EXISTS fixtures_away_idx   ON fixtures (away_team_id);
+CREATE INDEX IF NOT EXISTS fixtures_league_idx ON fixtures (league_id);
