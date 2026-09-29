@@ -25,6 +25,7 @@ export async function GET() {
     return Response.json(rows);
   } catch (err) {
     console.error('GET /api/fixtures failed:', err);
-    return Response.json({ error: 'Could not load fixtures from the database' }, { status: 500 });
+    // message + code only (no credentials), so the page can tell you what is wrong
+    return Response.json({ error: 'Could not load fixtures from the database', detail: err.message || String(err), code: err.code || null }, { status: 500 });
   }
 }
