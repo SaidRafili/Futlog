@@ -1,4 +1,4 @@
--- Run once:  psql -U postgres -c "CREATE DATABASE teams;"  then  psql -U postgres -d teams -f scripts/schema.sql
+-- Run once against your database (on Neon the default database is "neondb"; the table is what matters, not the db name).
 CREATE TABLE IF NOT EXISTS teams (
     teamId INT PRIMARY KEY,
     location VARCHAR(100),

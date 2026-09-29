@@ -1,13 +1,11 @@
 # Futlog (Next.js + PostgreSQL)
 
 ## Setup
-1. Create the database and table:
-   ```
-   psql -U postgres -c "CREATE DATABASE teams;"
-   psql -U postgres -d teams -f scripts/schema.sql
-   ```
-   Then load your team rows into the `teams` table (e.g. `\copy teams FROM 'teams.csv' CSV HEADER`).
-2. `cp .env.example .env.local` and set `DATABASE_URL`.
+1. Create the table in your database (Neon: SQL Editor, paste `scripts/schema.sql`; or
+   `psql "$DATABASE_URL" -f scripts/schema.sql`). Then load your team rows into `teams`
+   (e.g. `\copy teams FROM 'teams.csv' CSV HEADER`).
+2. `cp .env.example .env.local` and set `DATABASE_URL` (pooled Neon string).
+   On Vercel add `DATABASE_URL` under Settings -> Environment Variables and redeploy.
 3. Put `fixtures.csv` in `public/`.
 4. `npm install` → `npm run dev` → http://localhost:3000
 
