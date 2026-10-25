@@ -2,6 +2,8 @@
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useData } from './DataProvider';
+import { ME_HANDLE } from '@/lib/util';
 
 function SearchBox() {
   const router = useRouter();
@@ -27,13 +29,16 @@ function SearchBox() {
 
 export default function Header() {
   const router = useRouter();
+  const { me } = useData();
   return (
     <header className="topbar">
       <Link className="logo" href="/">Futlooooooooooog</Link>
       <Suspense fallback={<div className="search" />}><SearchBox /></Suspense>
       <nav className="nav"><Link href="/#matches">Matches</Link><Link href="/feed">Feed</Link></nav>
-      <button className="avatar-btn" aria-label="Account" onClick={() => router.push('/profile/saidrafili')}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#1b1a3d"><circle cx="12" cy="8" r="4.5" /><path d="M3 21c0-5 4-7 9-7s9 2 9 7z" /></svg>
+      <button className="avatar-btn" aria-label="Your profile" title={me ? me.name : 'Your profile'} onClick={() => router.push('/profile/' + ME_HANDLE)}>
+        {me?.avatar
+          ? <img src={me.avatar} alt="" />
+          : <svg width="14" height="14" viewBox="0 0 24 24" fill="#1b1a3d"><circle cx="12" cy="8" r="4.5" /><path d="M3 21c0-5 4-7 9-7s9 2 9 7z" /></svg>}
       </button>
     </header>
   );

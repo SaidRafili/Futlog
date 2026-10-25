@@ -12,6 +12,7 @@ WITH a AS (
   SELECT user_id, 'How pressing traps are changing the Premier League', 'Tactics', 6,
          ARRAY['First paragraph…', 'Second paragraph…'], 'published', now()
   FROM users WHERE handle = 'nora.wells'
+    AND NOT EXISTS (SELECT 1 FROM articles WHERE title = 'How pressing traps are changing the Premier League')
   RETURNING article_id
 )
 INSERT INTO article_matches (article_id, match_id) SELECT article_id, 1 FROM a;

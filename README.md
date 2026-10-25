@@ -23,4 +23,20 @@ Everything is stored in one PostgreSQL database called **teams**
 - `scripts/import-fixtures.mjs` – CSV -> `fixtures` table
 - `lib/data.js` – `loadAll()` fetches both endpoints
 
-Articles and profiles still use demo data from `lib/demo.js` (tables exist, API not wired yet).
+Articles still use demo data from `lib/demo.js` (tables exist, API not wired yet).
+
+## Profiles, activity, banner and settings (PostgreSQL)
+Run `npm run db:schema` once (re-runnable; it upgrades an existing database). It adds `users.banner_url` / `banner_hue` and the tables
+`user_matches` (watched / liked / on-site), `reviews`, `follows`, plus the `user_activity` view behind the **Activity** tab.
+Optional demo content for the profile page: `npm run db:seed` (needs `fixtures` loaded).
+
+- `/profile/[handle]` – reads `GET /api/users/[handle]` (profile, counts, every tab, recent activity). Handles that are not in the
+  `users` table (the generated demo people) still show their demo profile.
+- `/settings` – edit name, bio, location, favourite team, profile photo, banner image and banner colour (`PUT /api/users/[handle]`).
+  Images are resized in the browser, stored in the `users` table and served by `GET /api/users/[handle]/image/avatar|banner`.
+  The first save creates your `users` row.
+- Match page: the Watched and Like buttons save to the profile (`POST/DELETE /api/users/[handle]/matches`).
+- Follow buttons save to `follows` (`POST/DELETE /api/follows`).
+- **No sign-in yet:** the whole site acts as the user in `ME_HANDLE` (`lib/util.js`, default `saidrafili`). The write endpoints only
+  accept that handle. When you add auth, replace `ME_HANDLE` / `isMe()` (`lib/users.js`) with the session user.
+- Favicon: `app/favicon.ico`, `app/icon.png`, `app/apple-icon.png`, `app/manifest.js` (+ `public/icon-*.png`).

@@ -25,9 +25,10 @@ export default function MatchView() {
 }
 
 function MatchPage({ m }) {
-  const { T, demo, detail } = useData();
+  const { T, demo, detail, marks, setMark } = useData();
   const h = T[m.h], a = T[m.a], d = detail(m);
-  const [s, setS] = useState({ watched: false, liked: false, rating: 0, posted: [] });
+  const [s, setS] = useState({ rating: 0, posted: [] });
+  const watched = marks.watched.has(m.id), liked = marks.liked.has(m.id); // saved to the profile in PostgreSQL
   const [tab, setTab] = useState('reviews');
   const tabsRef = useRef(null);
 
@@ -78,8 +79,8 @@ function MatchPage({ m }) {
         <aside className="mp-side">
           <div className="stats">
             <div className="actions">
-              <button className={s.watched ? 'on' : ''} aria-pressed={s.watched} aria-label="Watched" title="Mark as watched" style={{ color: 'var(--accent)' }} onClick={() => setS(x => ({ ...x, watched: !x.watched }))}>{IC.eye}<span>{fmt(d.views + (s.watched ? 1 : 0))}</span></button><i className="div" />
-              <button className={s.liked ? 'on' : ''} aria-pressed={s.liked} aria-label="Like" title="Like this match" style={{ color: '#ef2b3a' }} onClick={() => setS(x => ({ ...x, liked: !x.liked }))}>{IC.heart}<span>{fmt(d.likes + (s.liked ? 1 : 0))}</span></button><i className="div" />
+              <button className={watched ? 'on' : ''} aria-pressed={watched} aria-label="Watched" title="Mark as watched" style={{ color: 'var(--accent)' }} onClick={() => setMark(m.id, 'watched', !watched)}>{IC.eye}<span>{fmt(d.views + (watched ? 1 : 0))}</span></button><i className="div" />
+              <button className={liked ? 'on' : ''} aria-pressed={liked} aria-label="Like" title="Like this match" style={{ color: '#ef2b3a' }} onClick={() => setMark(m.id, 'liked', !liked)}>{IC.heart}<span>{fmt(d.likes + (liked ? 1 : 0))}</span></button><i className="div" />
               <button className="on" aria-label="Go to comments" title="Go to comments" style={{ color: 'var(--accent)' }}
                 onClick={() => { setTab('comments'); tabsRef.current?.scrollIntoView({ behavior: 'smooth' }); }}>{IC.chat}<span>{fmt(d.ccount + s.posted.length)}</span></button>
             </div>

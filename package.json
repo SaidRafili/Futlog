@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "import:fixtures": "node --env-file=.env.local scripts/import-fixtures.mjs"
+    "import:fixtures": "node --env-file=.env.local scripts/import-fixtures.mjs",
+    "db:schema": "node --env-file=.env.local scripts/apply-sql.mjs scripts/schema.sql",
+    "db:seed": "node --env-file=.env.local scripts/apply-sql.mjs scripts/seed_demo_authors.sql && node --env-file=.env.local scripts/seed-demo-activity.mjs"
   },
   "dependencies": {
     "next": "^16.3.6",

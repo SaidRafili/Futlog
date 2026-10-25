@@ -3,8 +3,14 @@ import DataProvider from '@/components/DataProvider';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-export const metadata = { title: 'Futlog' };
-export const viewport = { width: 'device-width', initialScale: 1 };
+export const metadata = {
+  title: 'Futlog',
+  description: 'Log, rate and revisit the football matches you watch.',
+  // Icons come from the file conventions in /app: icon.png, apple-icon.png and favicon.ico (Next adds the <link> tags itself),
+  // plus app/manifest.js for "add to home screen".
+};
+export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#0b0b19' };
+
 
 
 export default function RootLayout({ children }) {

@@ -103,3 +103,57 @@ CREATE INDEX IF NOT EXISTS fixtures_date_idx   ON fixtures (event_date DESC);
 CREATE INDEX IF NOT EXISTS fixtures_home_idx   ON fixtures (home_team_id);
 CREATE INDEX IF NOT EXISTS fixtures_away_idx   ON fixtures (away_team_id);
 CREATE INDEX IF NOT EXISTS fixtures_league_idx ON fixtures (league_id);
+
+
+-- =====================================================================
+-- PROFILES: banner + activity   (safe to re-run; upgrades an existing database in place)
+-- =====================================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS banner_url TEXT;        -- https URL or an uploaded image stored as a data: URL
+ALTER TABLE users ADD COLUMN IF NOT EXISTS banner_hue SMALLINT;    -- 0-359, colour of the default banner gradient when there is no image
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_banner_hue_range;
+ALTER TABLE users ADD CONSTRAINT users_banner_hue_range CHECK (banner_hue IS NULL OR banner_hue BETWEEN 0 AND 359);
+-- (avatar_url, bio, location, display_name and favourite_team_id already exist in the users table above)
+
+-- Matches a user has marked: watched / liked / on-site.  match_id = fixtures.event_id (no FK, same reason as article_matches).
+CREATE TABLE IF NOT EXISTS user_matches (
+    user_id    BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    match_id   INT    NOT NULL,
+    kind       VARCHAR(10) NOT NULL CHECK (kind IN ('watched', 'liked', 'onsite')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, match_id, kind)
+);
+CREATE INDEX IF NOT EXISTS user_matches_recent_idx ON user_matches (user_id, kind, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS reviews (
+    review_id  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id    BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    match_id   INT    NOT NULL,
+    title      VARCHAR(200) NOT NULL,
+    body       TEXT,
+    rating     SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 10),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS reviews_user_idx  ON reviews (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS reviews_match_idx ON reviews (match_id);
+
+CREATE TABLE IF NOT EXISTS follows (
+    follower_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    followee_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (follower_id, followee_id),
+    CHECK (follower_id <> followee_id)
+);
+CREATE INDEX IF NOT EXISTS follows_followee_idx ON follows (followee_id);
+
+-- One row per thing a user did, newest first when ordered by created_at. Powers the "Activity" tab.
+CREATE OR REPLACE VIEW user_activity AS
+    SELECT user_id, kind AS type, match_id, NULL::BIGINT AS target_user_id, NULL::BIGINT AS ref_id,
+           NULL::TEXT AS title, NULL::SMALLINT AS rating, created_at
+      FROM user_matches
+    UNION ALL
+    SELECT user_id, 'review', match_id, NULL, review_id, title, rating, created_at FROM reviews
+    UNION ALL
+    SELECT follower_id, 'follow', NULL, followee_id, NULL, NULL, NULL, created_at FROM follows
+    UNION ALL
+    SELECT author_id, 'article', NULL, NULL, article_id, title, NULL, published_at
+      FROM articles WHERE status = 'published';

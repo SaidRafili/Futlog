@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useData } from './DataProvider';
-import { avatarBg, profileHref } from '@/lib/util';
+import { ME_HANDLE, avatarBg, profileHref } from '@/lib/util';
 
 // Team crest (was cr()): logo image if the team has one, otherwise the abbreviation.
 export function Crest({ t, big }) {
@@ -47,16 +47,25 @@ export function ShareButton({ icon, className }) {
   return <button className={className} onClick={copy}>{icon}<span>{done ? 'Link copied' : 'Share'}</span></button>;
 }
 
-export function UserCard({ h }) {
+// Round avatar: the uploaded picture if there is one, otherwise the first letter on a colour made from the name.
+export function Avatar({ name, src, className = 'c-avatar', size }) {
+  const st = size ? { width: size, height: size } : undefined;
+  return src
+    ? <img className={className} src={src} alt="" style={{ ...st, objectFit: 'cover' }} />
+    : <span className={className} style={{ ...st, background: avatarBg(name, 45, 38) }}>{name[0]}</span>;
+}
+
+// `u` = { h, name, avatar } when the caller already has the person (profile lists); otherwise looked up from the demo data.
+export function UserCard({ h, u }) {
   const { getUser } = useData();
-  const u = getUser(h);
+  const p = u || { h, name: getUser(h).name, avatar: null };
   return (
     <div className="ucard">
-      <Link className="uc-l" href={profileHref(h)}>
-        <span className="c-avatar" style={{ background: avatarBg(u.name, 45, 38) }}>{u.name[0]}</span>
-        <span><b>{u.name}</b><small>@{h}</small></span>
+      <Link className="uc-l" href={profileHref(p.h)}>
+        <Avatar name={p.name} src={p.avatar} />
+        <span><b>{p.name}</b><small>@{p.h}</small></span>
       </Link>
-      {h === 'saidrafili' ? null : <FollowButton h={h} />}
+      {p.h === ME_HANDLE ? null : <FollowButton h={p.h} />}
     </div>
   );
 }

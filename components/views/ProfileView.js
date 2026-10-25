@@ -4,15 +4,16 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { Fragment, useEffect, useState } from 'react';
 import { useData } from '../DataProvider';
 import MatchCard from '../MatchCard';
-import { FollowButton, UserCard } from '../ui';
+import { Avatar, FollowButton, UserCard } from '../ui';
 import { PTABS, SORTS } from '@/lib/demo';
-import { avatarBg, daysAgo, hue, uniq } from '@/lib/util';
+import { fetchProfile, fromApi, fromDemo } from '@/lib/profile';
+import { ME_HANDLE, daysAgo, hue, tAgo, uniq } from '@/lib/util';
 
 function PCard({ href, t, meta, d, a, b }) {
   return (
     <Link className="pcard" href={href}>
       <div className="pc-img" style={{ '--a': a, '--b': b }} /><h3>{t}</h3>
-      <div className="pc-m"><span>{meta}</span><time>{daysAgo(d)}</time></div>
+      <div className="pc-m"><span>{meta}</span><time>{daysAgo(Math.max(1, Math.round(d)))}</time></div>
     </Link>
   );
 }
@@ -22,14 +23,61 @@ export default function ProfileView() {
   const raw = useParams().u;
   let h = raw; try { h = decodeURIComponent(raw); } catch {}
   let tab = useSearchParams().get('tab');
-  if (!PTABS.some(t => t[0] === tab)) tab = 'matches';
+  if (!PTABS.some(t => t[0] === tab)) tab = 'activity';
   if (d.status !== 'ready') return null;
-  return <ProfilePage key={h + '|' + tab} h={h} tab={tab} />; // filters/sort reset when the profile or tab changes
+  return <ProfileLoader key={h} h={h} tab={tab} />;
 }
 
-function ProfilePage({ h, tab }) {
-  const { T, matches, getUser, label, following } = useData();
-  const u = getUser(h), me = h === 'saidrafili';
+// Loads the profile from PostgreSQL (/api/users/:handle). Handles that are not in the database (the demo people) fall back
+// to the generated demo profile, so existing links keep working.
+function ProfileLoader({ h, tab }) {
+  const { T, byId, getUser, me } = useData();
+  const [st, setSt] = useState({ phase: 'loading' });
+
+  useEffect(() => {
+    let dead = false;
+    fetchProfile(h)
+      .then(api => { if (!dead) setSt({ phase: 'ready', u: api ? fromApi(api, { byId, T }) : fromDemo(getUser(h), getUser) }); })
+      .catch(e => { if (!dead) setSt({ phase: 'ready', u: fromDemo(getUser(h), getUser), error: e.message }); });
+    return () => { dead = true; };
+    // re-fetch after the settings page saved (me changes) so the own profile is never stale
+  }, [h, byId, T, getUser, me]);
+
+  if (st.phase === 'loading') return <main id="profilePage"><div className="pf-cover" style={{ '--h': hue(h) }} /></main>;
+  return <ProfilePage key={h + '|' + tab} h={h} tab={tab} u={st.u} error={st.error} />; // filters/sort reset when the profile or tab changes
+}
+
+const ACT = {
+  watched: ['Watched', 'eye'], liked: ['Liked', 'heart'], onsite: ['Was at', 'pin'], review: ['Reviewed', 'star'], follow: ['Started following', 'user'], article: ['Published', 'doc'],
+};
+const ICON = {
+  eye: <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zm10-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />,
+  heart: <path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z" />,
+  pin: <path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12zm0-9a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />,
+  star: <path d="M12 2l3 6.5 7 .9-5.2 4.8 1.4 7L12 17.8 5.8 21.2l1.4-7L2 9.4l7-.9z" />,
+  user: <path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm-9 9c0-5 4-7 9-7s9 2 9 7z" />,
+  doc: <path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5" />,
+};
+
+function ActivityRow({ a, label }) {
+  const [verb, icon] = ACT[a.type] || ['', 'eye'];
+  let what = null;
+  if (a.match) what = <Link href={`/match/${a.match.id}`}>{label(a.match)}</Link>;
+  if (a.type === 'follow') what = <Link href={`/profile/${a.handle}`}>{a.name || a.handle}</Link>;
+  if (a.type === 'article') what = <Link href={`/article/${a.refId}`}>{a.title}</Link>;
+  return (
+    <li>
+      <span className={`act-ic t-${a.type}`}><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">{ICON[icon]}</svg></span>
+      <div><span className="act-v">{verb}</span> {what}
+        {a.type === 'review' && <div className="act-q">“{a.title}” <b>{a.rating}/10</b></div>}</div>
+      <time>{a.min < 1 ? 'just now' : tAgo(a.min) + ' ago'}</time>
+    </li>
+  );
+}
+
+function ProfilePage({ h, tab, u, error }) {
+  const { T, matches, label } = useData();
+  const me = h === ME_HANDLE;
   const [q, setQ] = useState(''), [f, setF] = useState(''), [s, setS] = useState('new');
 
   useEffect(() => { document.title = `${u.name} (@${h}) · Futlog`; }, [u, h]);
@@ -44,44 +92,56 @@ function ProfilePage({ h, tab }) {
   if (tab === 'about') {
     const rec = u.watched.slice(0, 3);
     list = (
-      <div className="pf-about"><p>{u.bio}</p>
+      <div className="pf-about"><p>{u.bio || 'No bio yet.'}</p>
         <dl><dt>Joined</dt><dd>{u.joined}</dd><dt>Location</dt><dd>{u.loc}</dd>
-          <dt>Favourite team</dt><dd><Link href={`/search?q=${encodeURIComponent(u.fav.n)}`}>{u.fav.n}</Link></dd>
-          <dt>Recently watched</dt><dd>{rec.map((m, i) => <span key={m.id}>{i > 0 && <br />}<Link href={`/match/${m.id}`}>{label(m)}</Link></span>)}</dd></dl>
-        <div className="pf-chips">{PTABS.slice(0, 6).map(([k, l]) => <Link key={k} href={`/profile/${h}?tab=${k}`}>{l}</Link>)}</div>
+          <dt>Favourite team</dt><dd>{u.fav ? <Link href={`/search?q=${encodeURIComponent(u.fav.n)}`}>{u.fav.n}</Link> : '—'}</dd>
+          <dt>Recently watched</dt><dd>{rec.length ? rec.map((m, i) => <span key={m.id}>{i > 0 && <br />}<Link href={`/match/${m.id}`}>{label(m)}</Link></span>) : '—'}</dd></dl>
+        <div className="pf-chips">{PTABS.filter(([k]) => !['about', 'onsite', 'activity'].includes(k)).map(([k, l]) => <Link key={k} href={`/profile/${h}?tab=${k}`}>{l}</Link>)}</div>
       </div>
     );
   } else {
     let items = [], mode = 'cards';
-    const dOf = m => 1 + (m.id * 37 + u.h.length * 11) % 90;
-    if (['matches', 'liked', 'onsite'].includes(tab)) {
+    const daysOf = (key, m) => u.days[key][m.id] ?? 1;
+    if (tab === 'activity') {
+      mode = 'activity';
+      items = u.activity.map((a, i) => ({ key: i, d: a.min / 1440, x: `${ACT[a.type]?.[0] || ''} ${a.match ? label(a.match) : a.name || a.title || ''}`, node: <ActivityRow a={a} label={label} /> }));
+    } else if (['matches', 'liked', 'onsite'].includes(tab)) {
       mode = 'grid';
-      items = ({ matches: u.watched, liked: u.liked, onsite: u.onsite })[tab].map(m => ({ key: m.id, d: dOf(m), x: label(m), f: m.comp, node: <MatchCard m={m} /> }));
+      items = ({ matches: u.watched, liked: u.liked, onsite: u.onsite })[tab].map(m => ({ key: m.id, d: daysOf(tab, m), x: label(m), f: m.comp, node: <MatchCard m={m} /> }));
     } else if (tab === 'reviews') {
       items = u.reviews.map((v, i) => ({ key: i, d: v.d, x: v.t + ' ' + label(v.m), f: v.r,
         node: <PCard href={`/match/${v.m.id}`} t={v.t} meta={`${T[v.m.h].n} ${v.m.hs}–${v.m.as} ${T[v.m.a].n} · ${v.r}/10`} d={v.d} a={T[v.m.h].c} b={T[v.m.a].c} /> }));
     } else if (tab === 'articles') {
-      items = u.arts.map(a => ({ key: a.id, d: a.id * 6, x: a.t,
-        node: <PCard href={`/article/${a.id}`} t={a.t} meta={a.m} d={a.id * 6} a={`hsl(${hue(a.t)} 50% 35%)`} b={`hsl(${hue(a.t) + 60} 50% 25%)`} /> }));
+      items = u.arts.map(a => ({ key: a.id, d: a.d, x: a.t,
+        node: <PCard href={`/article/${a.id}`} t={a.t} meta={a.m} d={a.d} a={`hsl(${hue(a.t)} 50% 35%)`} b={`hsl(${hue(a.t) + 60} 50% 25%)`} /> }));
     } else { // followers | following
       mode = 'users';
-      items = u[tab].map(x => ({ key: x, d: 0, x: getUser(x).name + ' ' + x, node: <UserCard h={x} /> }));
+      items = u[tab].map(x => ({ key: x.h, d: 0, x: x.name + ' ' + x.h, node: <UserCard u={x} /> }));
     }
     if (f) items = items.filter(i => tab === 'reviews' ? i.f >= +f : i.f === f);
     if (q) items = items.filter(i => i.x.toLowerCase().includes(q.toLowerCase()));
     items.sort(s === 'az' ? (a, b) => a.x.localeCompare(b.x) : s === 'old' ? (a, b) => b.d - a.d : (a, b) => a.d - b.d);
     list = items.length
-      ? <div className={mode === 'grid' ? 'match-grid' : mode === 'users' ? 'pf-users' : 'pf-cards'}>{items.map(i => <Fragment key={i.key}>{i.node}</Fragment>)}</div>
-      : <p className="empty">{q || f ? 'Nothing matches your search or filter.' : `${u.name} has nothing here yet.`}</p>;
+      ? <div className={mode === 'grid' ? 'match-grid' : mode === 'users' ? 'pf-users' : mode === 'activity' ? '' : 'pf-cards'}>
+          {mode === 'activity' ? <ul className="pf-act">{items.map(i => <Fragment key={i.key}>{i.node}</Fragment>)}</ul> : items.map(i => <Fragment key={i.key}>{i.node}</Fragment>)}
+        </div>
+      : <p className="empty">{q || f ? 'Nothing matches your search or filter.' : tab === 'activity' ? `${u.name} has no activity yet.` : `${u.name} has nothing here yet.`}</p>;
   }
+
+  const cover = u.banner
+    ? { backgroundImage: `url("${u.banner}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { '--h': u.hue ?? hue(h) };
 
   return (
     <main id="profilePage">
-      <div className="pf-cover" style={{ '--h': hue(h) }} />
+      <div className={`pf-cover${u.banner ? ' img' : ''}`} style={cover} />
       <div className="pf-wrap">
+        {error && me && <p className="pf-note" role="alert">Showing a demo profile because your saved profile could not be loaded ({error}).</p>}
+        {me && !u.db && !error && <p className="pf-note">This profile is not saved in the database yet. <Link href="/settings">Open Settings</Link> and save once to create it.</p>}
         <header className="pf-head">
-          <div className="pf-av" style={{ background: avatarBg(u.name, 45, 38) }}>{u.name[0]}</div>
-          <div className="pf-id"><h1>{u.name}</h1><div className="handle">@{u.h}</div>{me ? null : <FollowButton h={u.h} />}</div>
+          <Avatar name={u.name} src={u.avatar} className="pf-av" />
+          <div className="pf-id"><h1>{u.name}</h1><div className="handle">@{u.h}</div>
+            {me ? <Link className="follow pf-edit" href="/settings">Edit profile</Link> : <FollowButton h={u.h} />}</div>
           <div className="pf-stats">{stats.map(([k, n, l]) => <Link key={k} href={`/profile/${u.h}?tab=${k}`}><b>{n}</b>{l}</Link>)}</div>
         </header>
         <div className="pf-body">
