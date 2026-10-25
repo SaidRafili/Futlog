@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 export const metadata = { title: 'Futlog' };
 export const viewport = { width: 'device-width', initialScale: 1 };
 
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
