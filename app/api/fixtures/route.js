@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 // Same field names the old fixtures.csv used; `date` keeps the "YYYY-MM-DD HH:MM:SS" (UTC) format.
 const SQL = `
   SELECT event_id                                                   AS "eventId",
-         to_char(event_date AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS event_date,
+         to_char(event_date AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS date,
          league_id            AS "leagueId",
          COALESCE(venue_id, 0) AS "venueId",
          attendance,
