@@ -7,7 +7,7 @@ const SQL = `
   SELECT
          event_id              AS "eventId",
          to_char(
-           event_date::timestamp,
+           date::timestamp,
            'YYYY-MM-DD HH24:MI:SS'
          )                     AS event_date,
          league_id             AS "leagueId",
