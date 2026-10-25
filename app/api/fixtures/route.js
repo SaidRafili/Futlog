@@ -9,7 +9,7 @@ const SQL = `
          to_char(
            event_date::timestamp,
            'YYYY-MM-DD HH24:MI:SS'
-         )                     AS date,
+         )                     AS event_date,
          league_id             AS "leagueId",
          COALESCE(venue_id::integer, 0) AS "venueId",
          attendance,
