@@ -1,13 +1,12 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { loadAll } from '@/lib/data';
-import { setMeHandle } from '@/lib/util';
 import { sendJSON } from '@/lib/profile';
 
 export const DataContext = createContext({ status: 'loading' });
 export const useData = () => useContext(DataContext);
 
-// Loads teams + fixtures (PostgreSQL) once for the whole site and shares the result.
+// Loads teams + fixtures (PostgreSQL) once for the whole site and shares the result, plus the signed-in user.
 // Views render nothing until status === 'ready'.
 export default function DataProvider({ children }) {
   const [state, setState] = useState({ status: 'loading' });
@@ -42,7 +41,6 @@ export default function DataProvider({ children }) {
     setMeReady(true);
   }, []);
   useEffect(() => { refreshMe(); }, [refreshMe]);
-  setMeHandle(me?.handle);
 
   const signOut = useCallback(async () => {
     try { await sendJSON('/api/auth/logout', 'POST', {}); } catch { /* cookie may already be gone */ }
@@ -55,14 +53,14 @@ export default function DataProvider({ children }) {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // optimistic follow: the UI flips at once, the database follows. Demo users that are not in the users table just stay local.
+  // optimistic follow: the UI flips at once, the database follows; if saving fails the button flips back
   const toggleFollow = useCallback(h => {
     if (!me) { openAuth('signin'); return; }
     let on = false;
     setFollowing(s => { const n = new Set(s); on = !n.has(h); on ? n.add(h) : n.delete(h); return n; });
-    // demo people are not in the users table (404): the follow just stays local for them
     queueMicrotask(() => sendJSON('/api/follows', on ? 'POST' : 'DELETE', { handle: h }).catch(e => {
-      if (e.status === 401) { setFollowing(s => { const n = new Set(s); n.delete(h); return n; }); openAuth('signin'); }
+      setFollowing(s => { const n = new Set(s); on ? n.delete(h) : n.add(h); return n; });
+      if (e.status === 401) openAuth('signin'); else setToast(e.message || 'Could not save that');
     }));
   }, [me, openAuth]);
 

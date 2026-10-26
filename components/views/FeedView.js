@@ -1,10 +1,11 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useData } from '../DataProvider';
-import { MiniBadge, ShareButton, UserCard } from '../ui';
-import { POOL } from '@/lib/demo';
-import { avatarBg, profileHref, tAgo } from '@/lib/util';
+import CommentSection from '../Comments';
+import { Avatar, LikeButton, MiniBadge, ShareButton, UserCard } from '../ui';
+import { sendJSON } from '@/lib/profile';
+import { profileHref, timeAgo } from '@/lib/util';
 
 const ico = d => <svg width="15" height="15" viewBox="0 0 24 24"><path d={d} /></svg>;
 const ICO = {
@@ -12,16 +13,6 @@ const ICO = {
   chat: ico('M4 4h16v12H9l-5 4z'),
   link: ico('M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1')
 };
-
-function ReplyForm({ onReply }) {
-  const [v, setV] = useState('');
-  const submit = e => { e.preventDefault(); const t = v.trim(); if (!t) return; onReply(t); setV(''); };
-  return (
-    <form onSubmit={submit}>
-      <input value={v} onChange={e => setV(e.target.value)} placeholder="Write a reply" aria-label="Write a reply" maxLength={280} /><button>Reply</button>
-    </form>
-  );
-}
 
 function FeedMatch({ m }) {
   const { T, label } = useData();
@@ -37,37 +28,53 @@ function FeedMatch({ m }) {
 export default function FeedView() {
   const d = useData();
   useEffect(() => { document.title = 'Feed · Futlog'; }, []);
-  if (d.status !== 'ready') return null;
+  if (d.status !== 'ready' || !d.meReady) return null;
   return <FeedPage />;
 }
 
+// Feed posts live in the `posts` table; replies are rows in `comments` (type 'post'). Posts and replies can be edited / deleted by their author.
 function FeedPage() {
-  const { T, matches, byId, label, getUser, feed0, following, me } = useData();
-  const [posts, setPosts] = useState(feed0);
+  const { matches, byId, label, following, me, openAuth } = useData();
+  const [posts, setPosts] = useState(null), [error, setError] = useState('');
   const [tab, setTab] = useState('latest');
   const [fm, setFm] = useState(0);                       // match filter
-  const [liked, setLiked] = useState(() => new Set());
   const [open, setOpen] = useState(() => new Set());
-  const [text, setText] = useState(''), [tag, setTag] = useState('0');
-  const nextId = useRef(100);
+  const [text, setText] = useState(''), [tag, setTag] = useState('0'), [busy, setBusy] = useState(false), [perr, setPerr] = useState('');
+  const [sug, setSug] = useState([]);
+  const who = me?.handle || '';
 
-  const toggle = (set, setter, id) => setter(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const lk = p => p.likes + (liked.has(p.id) ? 1 : 0);
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/posts?tab=${tab}&limit=100`, { cache: 'no-store' });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || 'HTTP ' + res.status);
+      setPosts(j.posts); setError('');
+    } catch (e) { setError(e.message); setPosts(p => p || []); }
+  }, [tab]);
+  useEffect(() => { load(); }, [load, who]);
 
-  const list = posts.filter(p => (!fm || p.m === fm) && (tab !== 'following' || following.has(p.u)))
-    .sort(tab === 'top' ? (a, b) => lk(b) - lk(a) : (a, b) => a.min - b.min);
+  useEffect(() => {      // "Who to follow": people from the users table that you do not follow yet
+    fetch('/api/users?suggest=1&limit=5', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => setSug(j?.users || [])).catch(() => {});
+  }, [who]);
 
-  const cnt = {}; posts.forEach(p => p.m && (cnt[p.m] = (cnt[p.m] || 0) + 1));
-  const hot = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id]) => byId(+id));
-  const sug = POOL.filter(x => x !== me?.handle && !following.has(x)).slice(0, 3);
+  const list = (posts || []).filter(p => !fm || p.matchId === fm);
+  const cnt = {}; (posts || []).forEach(p => p.matchId && (cnt[p.matchId] = (cnt[p.matchId] || 0) + 1));
+  const hot = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id]) => byId(+id)).filter(Boolean);
+  const toggle = id => setOpen(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const submit = e => {
+  const submit = async e => {
     e.preventDefault();
-    const t = text.trim(); if (!t) return;
-    setPosts(p => [{ id: ++nextId.current, u: 'you', m: +tag, min: 0, likes: 0, text: t, rep: [] }, ...p]); // TODO: send to your backend
-    setText(''); setTag('0'); setTab('latest');
+    const t = text.trim(); if (!t || busy) return;
+    if (!me) { openAuth('signin'); return; }
+    setBusy(true); setPerr('');
+    try {
+      const { post } = await sendJSON('/api/posts', 'POST', { body: t, matchId: +tag || undefined });
+      setText(''); setTag('0');
+      if (tab === 'top') setTab('latest'); else setPosts(p => [post, ...(p || [])]);
+    } catch (x) { setPerr(x.message); } finally { setBusy(false); }
   };
-  const reply = (id, t) => setPosts(p => p.map(x => x.id === id ? { ...x, rep: [...x.rep, { u: 'you', text: t, min: 0 }] } : x));
+  const edit = async (p, body) => { const { post } = await sendJSON('/api/posts/' + p.id, 'PUT', { body }); setPosts(l => l.map(x => x.id === p.id ? post : x)); };
+  const remove = async p => { await sendJSON('/api/posts/' + p.id, 'DELETE', {}); setPosts(l => l.filter(x => x.id !== p.id)); };
 
   return (
     <main id="feedPage">
@@ -81,55 +88,77 @@ function FeedPage() {
             </div>
           </div>
           <form className="fd-comp" onSubmit={submit}>
-            <input type="text" value={text} onChange={e => setText(e.target.value)} placeholder="Share a thought on the game…" maxLength={280} aria-label="Write a post" />
+            <input type="text" value={text} onChange={e => { setText(e.target.value); setPerr(''); }} placeholder={me ? 'Share a thought on the game…' : 'Sign in to share a thought on the game…'} maxLength={280} aria-label="Write a post" />
             <div className="fd-row">
               <select value={tag} onChange={e => setTag(e.target.value)} aria-label="Tag a match">
                 <option value="0">Tag a match (optional)</option>
                 {matches.slice(0, 100).map(m => <option key={m.id} value={m.id}>{label(m)}</option>)}
               </select>
-              <button type="submit">Post</button>
+              <button type="submit" disabled={busy}>Post</button>
             </div>
+            {perr && <p className="st-err" role="alert">{perr}</p>}
           </form>
           <div className="fd-filter" hidden={!fm}>
-            {fm ? <>Showing posts about <b>{label(byId(fm))}</b><button onClick={() => setFm(0)}>Clear</button></> : null}
+            {fm && byId(fm) ? <>Showing posts about <b>{label(byId(fm))}</b><button onClick={() => setFm(0)}>Clear</button></> : null}
           </div>
+          {error && <p className="pf-note" role="alert">Could not load the feed: {error}</p>}
           <div>
-            {list.length ? list.map(p => {
-              const m = p.m && byId(p.m), isOpen = open.has(p.id), un = getUser(p.u).name;
-              return (
-                <article key={p.id} className="post" style={{ '--hc': avatarBg(p.u, 55, 45) }}>
-                  <Link className="p-av" href={profileHref(p.u)} style={{ background: avatarBg(p.u) }}>{un[0]}</Link>
-                  <div>
-                    <div className="p-top"><Link href={profileHref(p.u)}>{un}</Link><small>@{p.u}</small><time>{tAgo(p.min)}</time></div>
-                    <p className="p-text">{p.text}</p>{m ? <FeedMatch m={m} /> : null}
-                    <div className="p-acts">
-                      <button className={liked.has(p.id) ? 'on' : ''} aria-pressed={liked.has(p.id)} onClick={() => toggle(liked, setLiked, p.id)}>{ICO.heart}{lk(p)}</button>
-                      <button className={isOpen ? 'on' : ''} onClick={() => toggle(open, setOpen, p.id)}>{ICO.chat}{p.rep.length}</button>
-                      <ShareButton icon={ICO.link} />
-                    </div>
-                    {isOpen && (
-                      <div className="replies">
-                        {p.rep.map((r, i) => <div key={i}><b><Link href={profileHref(r.u)}>{r.u}</Link></b><span>{tAgo(r.min)}</span><br />{r.text}</div>)}
-                        <ReplyForm onReply={t => reply(p.id, t)} />
-                      </div>
-                    )}
-                  </div>
-                </article>
-              );
-            }) : <p className="empty">{tab === 'following' ? 'Follow some people and their posts will show up here.' : 'No posts yet. Be the first.'}</p>}
+            {posts === null ? <p className="empty">Loading…</p> : list.length ? list.map(p => (
+              <PostCard key={p.id} p={p} m={p.matchId ? byId(p.matchId) : null} isOpen={open.has(p.id)} onToggle={() => toggle(p.id)} onEdit={edit} onDelete={remove}
+                onReplies={n => setPosts(l => l.map(x => x.id === p.id ? { ...x, replies: n } : x))} />
+            )) : <p className="empty">{tab === 'following' ? (me ? 'Follow some people and their posts will show up here.' : 'Sign in and follow some people to fill this tab.') : 'No posts yet. Be the first.'}</p>}
           </div>
         </section>
         <aside className="fd-side">
           <div className="fd-box"><h2>Hot matches</h2>
-            {hot.map(m => (
-              <button key={m.id} className={`hm ${fm === m.id ? 'on' : ''}`} onClick={() => setFm(fm === m.id ? 0 : m.id)}>{T[m.h].n} {m.hs}–{m.as} {T[m.a].n}<span>{cnt[m.id]}</span></button>
-            ))}
+            {hot.length ? hot.map(m => (
+              <button key={m.id} className={`hm ${fm === m.id ? 'on' : ''}`} onClick={() => setFm(fm === m.id ? 0 : m.id)}>{label(m)}<span>{cnt[m.id]}</span></button>
+            )) : <span style={{ color: 'var(--muted)' }}>Tag a match in a post and it shows up here.</span>}
           </div>
           <div className="fd-box"><h2>Who to follow</h2>
-            {sug.length ? sug.map(x => <UserCard key={x} h={x} />) : <span style={{ color: 'var(--muted)' }}>You follow everyone.</span>}
+            {sug.filter(x => !following.has(x.handle)).length
+              ? sug.filter(x => !following.has(x.handle)).map(x => <UserCard key={x.handle} u={{ h: x.handle, name: x.name, avatar: x.avatar }} />)
+              : <span style={{ color: 'var(--muted)' }}>No one else to follow yet.</span>}
           </div>
         </aside>
       </div>
     </main>
+  );
+}
+
+function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onReplies }) {
+  const [editing, setEditing] = useState(false), [v, setV] = useState(p.body), [err, setErr] = useState(''), [confirm, setConfirm] = useState(false);
+  const save = async e => {
+    e.preventDefault();
+    const t = v.trim(); if (!t) { setErr('A post cannot be empty'); return; }
+    if (t === p.body) { setEditing(false); return; }
+    try { await onEdit(p, t); setEditing(false); setErr(''); } catch (x) { setErr(x.message); }
+  };
+  const del = async () => { try { await onDelete(p); } catch (x) { setErr(x.message); setConfirm(false); } };
+  return (
+    <article className="post" style={{ '--hc': 'var(--accent-deep)' }}>
+      <Link href={profileHref(p.user.handle)} style={{ display: 'contents' }}><Avatar name={p.user.name} src={p.user.avatar} className="p-av" /></Link>
+      <div>
+        <div className="p-top"><Link href={profileHref(p.user.handle)}>{p.user.name}</Link><small>@{p.user.handle}</small><time>{timeAgo(p.at)}{p.editedAt ? ' · edited' : ''}</time></div>
+        {editing ? (
+          <form className="c-editform" onSubmit={save}>
+            <textarea value={v} onChange={e => { setV(e.target.value); setErr(''); }} maxLength={280} rows={3} aria-label="Edit your post" autoFocus />
+            <div className="c-acts"><button type="submit" className="btn primary sm">Save</button><button type="button" className="btn ghost sm" onClick={() => { setV(p.body); setEditing(false); setErr(''); }}>Cancel</button></div>
+          </form>
+        ) : <p className="p-text">{p.body}</p>}
+        {err && <p className="st-err" role="alert">{err}</p>}
+        {m ? <FeedMatch m={m} /> : null}
+        <div className="p-acts">
+          <LikeButton type="post" id={p.id} count={p.likes} liked={p.liked}>
+            {({ on, n, toggle }) => <button className={on ? 'on' : ''} aria-pressed={on} onClick={toggle}>{ICO.heart}{n}</button>}
+          </LikeButton>
+          <button className={isOpen ? 'on' : ''} onClick={onToggle}>{ICO.chat}{p.replies}</button>
+          <ShareButton icon={ICO.link} />
+          {p.mine && !editing && <button onClick={() => setEditing(true)}>Edit</button>}
+          {p.mine && (confirm ? <><button onClick={del} style={{ color: '#ff8b94' }}>Delete?</button><button onClick={() => setConfirm(false)}>No</button></> : <button onClick={() => setConfirm(true)}>Delete</button>)}
+        </div>
+        {isOpen && <div className="replies"><CommentSection type="post" id={p.id} placeholder="Write a reply" max={280} onCount={onReplies} /></div>}
+      </div>
+    </article>
   );
 }

@@ -177,3 +177,122 @@ CREATE TABLE IF NOT EXISTS auth_attempts (           -- failed sign-ins, used to
     at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS auth_attempts_key_idx ON auth_attempts (key, at DESC);
+
+
+-- =====================================================================
+-- CONTENT: articles, comments, likes, saves, feed posts, ratings   (safe to re-run)
+-- Everything below replaces the old demo data. All rows belong to a user (users.user_id).
+-- =====================================================================
+
+-- ---- articles (table created above): extra columns + indexes ----
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS published_once BOOLEAN NOT NULL DEFAULT FALSE;   -- true after the first publish
+ALTER TABLE articles DROP CONSTRAINT IF EXISTS articles_title_len;
+ALTER TABLE articles ADD CONSTRAINT articles_title_len CHECK (char_length(btrim(title)) >= 3);
+CREATE INDEX IF NOT EXISTS articles_author_status_idx ON articles (author_id, status, updated_at DESC);
+
+-- ---- article saves (bookmarks): "Save" button on an article ----
+CREATE TABLE IF NOT EXISTS article_saves (
+    user_id    BIGINT NOT NULL REFERENCES users(user_id)       ON DELETE CASCADE,
+    article_id BIGINT NOT NULL REFERENCES articles(article_id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, article_id)
+);
+CREATE INDEX IF NOT EXISTS article_saves_recent_idx ON article_saves (user_id, created_at DESC);
+
+-- ---- feed posts (the /feed page). Replies to a post are rows in `comments` with target_type = 'post' ----
+CREATE TABLE IF NOT EXISTS posts (
+    post_id    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id    BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    body       VARCHAR(280) NOT NULL CHECK (char_length(btrim(body)) >= 1),
+    match_id   INT,                                       -- optional tagged match (fixtures.event_id, no FK)
+    edited_at  TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS posts_recent_idx ON posts (created_at DESC);
+CREATE INDEX IF NOT EXISTS posts_user_idx   ON posts (user_id, created_at DESC);
+
+-- ---- comments: ONE table for every kind of thing that can be commented on ----
+--   target_type 'match'   -> target_id = fixtures.event_id  (no FK: same reason as user_matches)
+--   target_type 'article' -> target_id = articles.article_id
+--   target_type 'review'  -> target_id = reviews.review_id
+--   target_type 'post'    -> target_id = posts.post_id
+--   parent_id = the comment this one replies to (NULL = top level)
+CREATE TABLE IF NOT EXISTS comments (
+    comment_id  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id     BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    target_type VARCHAR(10) NOT NULL CHECK (target_type IN ('match', 'article', 'review', 'post')),
+    target_id   BIGINT NOT NULL,
+    parent_id   BIGINT REFERENCES comments(comment_id) ON DELETE CASCADE,
+    body        TEXT NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 1000),
+    edited_at   TIMESTAMPTZ,                              -- set when the author edits it ("edited" label)
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS comments_target_idx ON comments (target_type, target_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS comments_user_idx   ON comments (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS comments_parent_idx ON comments (parent_id);
+
+-- ---- likes: ONE table for articles, comments, posts and reviews (a match "like" is user_matches.kind = 'liked') ----
+CREATE TABLE IF NOT EXISTS likes (
+    user_id     BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    target_type VARCHAR(10) NOT NULL CHECK (target_type IN ('article', 'comment', 'review', 'post')),
+    target_id   BIGINT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, target_type, target_id)         -- one like per user per thing
+);
+CREATE INDEX IF NOT EXISTS likes_target_idx ON likes (target_type, target_id);
+
+-- ---- 1-10 rating of a match (the rating bars on the match page) ----
+CREATE TABLE IF NOT EXISTS match_ratings (
+    user_id    BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    match_id   INT NOT NULL,
+    rating     SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 10),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, match_id)
+);
+CREATE INDEX IF NOT EXISTS match_ratings_match_idx ON match_ratings (match_id);
+
+DROP TRIGGER IF EXISTS comments_set_updated_at ON comments;
+CREATE TRIGGER comments_set_updated_at BEFORE UPDATE ON comments FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+DROP TRIGGER IF EXISTS posts_set_updated_at ON posts;
+CREATE TRIGGER posts_set_updated_at BEFORE UPDATE ON posts FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- comments and likes point at several tables, so no foreign key can cascade for them: this trigger does it.
+-- TG_ARGV[0] = target type, TG_ARGV[1] = name of the id column of the deleted row.
+CREATE OR REPLACE FUNCTION delete_target_children() RETURNS trigger AS $$
+DECLARE tid BIGINT := (to_jsonb(OLD) ->> TG_ARGV[1])::bigint;
+BEGIN
+  DELETE FROM likes    WHERE target_type = TG_ARGV[0] AND target_id = tid;
+  IF TG_ARGV[0] <> 'comment' THEN
+    DELETE FROM comments WHERE target_type = TG_ARGV[0] AND target_id = tid;   -- their own likes go via the comment trigger
+  END IF;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS articles_cleanup ON articles;
+CREATE TRIGGER articles_cleanup AFTER DELETE ON articles FOR EACH ROW EXECUTE FUNCTION delete_target_children('article', 'article_id');
+DROP TRIGGER IF EXISTS posts_cleanup ON posts;
+CREATE TRIGGER posts_cleanup    AFTER DELETE ON posts    FOR EACH ROW EXECUTE FUNCTION delete_target_children('post', 'post_id');
+DROP TRIGGER IF EXISTS reviews_cleanup ON reviews;
+CREATE TRIGGER reviews_cleanup  AFTER DELETE ON reviews  FOR EACH ROW EXECUTE FUNCTION delete_target_children('review', 'review_id');
+DROP TRIGGER IF EXISTS comments_cleanup ON comments;
+CREATE TRIGGER comments_cleanup AFTER DELETE ON comments FOR EACH ROW EXECUTE FUNCTION delete_target_children('comment', 'comment_id');
+
+-- Activity tab: also show comments (replaces the old view, same columns)
+CREATE OR REPLACE VIEW user_activity AS
+    SELECT user_id, kind AS type, match_id, NULL::BIGINT AS target_user_id, NULL::BIGINT AS ref_id,
+           NULL::TEXT AS title, NULL::SMALLINT AS rating, created_at
+      FROM user_matches
+    UNION ALL
+    SELECT user_id, 'review', match_id, NULL, review_id, title, rating, created_at FROM reviews
+    UNION ALL
+    SELECT follower_id, 'follow', NULL, followee_id, NULL, NULL, NULL, created_at FROM follows
+    UNION ALL
+    SELECT author_id, 'article', NULL, NULL, article_id, title, NULL, published_at
+      FROM articles WHERE status = 'published'
+    UNION ALL
+    SELECT user_id, 'comment', CASE WHEN target_type = 'match' THEN target_id::int END, NULL, comment_id,
+           left(body, 140), NULL, created_at
+      FROM comments;

@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 import { MAX_AVATAR, MAX_BANNER, authorize, checkImage, cleanHandle, dbError, fail, findUser, imageSrc, json, liteFor, publicUser, readBody } from '@/lib/users';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,7 @@ export async function GET(req, { params }) {
     if (!u) return fail(404, 'No such user');
     if (lite) return json(await liteFor(u));
     const id = u.user_id;
+    const viewer = await getSessionUser(), isOwner = !!viewer && String(viewer.user_id) === String(id);
 
     const marks = await query(
       `SELECT kind, match_id AS id, created_at AS at FROM user_matches WHERE user_id = $1 ORDER BY created_at DESC LIMIT ${LIMIT * 3}`, [id]);
@@ -27,26 +29,36 @@ export async function GET(req, { params }) {
     const person = r => ({ handle: r.handle, name: r.name, avatar: imageSrc(r.handle, 'avatar', r.avatar_url, r.updated_at) });
 
 
-    const [followers, reviews, articles, activity, counts] = await Promise.all([
+    const [followers, reviews, articles, activity, counts, saved] = await Promise.all([
       query(`SELECT u.handle, u.display_name AS name, u.avatar_url, u.updated_at FROM follows f JOIN users u ON u.user_id = f.follower_id
               WHERE f.followee_id = $1 ORDER BY f.created_at DESC LIMIT ${LIMIT}`, [id]),
       query(`SELECT review_id AS id, match_id, title, rating, created_at AS at FROM reviews WHERE user_id = $1 ORDER BY created_at DESC LIMIT ${LIMIT}`, [id]),
-      query(`SELECT article_id AS id, title, category, read_minutes, published_at AS at FROM articles
-              WHERE author_id = $1 AND status = 'published' ORDER BY published_at DESC LIMIT ${LIMIT}`, [id]),
+      // the owner also sees their drafts
+      query(`SELECT article_id AS id, title, category, read_minutes, status, COALESCE(published_at, updated_at) AS at,
+                    (SELECT count(*)::int FROM likes l WHERE l.target_type = 'article' AND l.target_id = article_id) AS likes
+               FROM articles WHERE author_id = $1 AND (status = 'published' OR $2::boolean) ORDER BY COALESCE(published_at, updated_at) DESC LIMIT ${LIMIT}`, [id, isOwner]),
       query(`SELECT a.type, a.match_id, a.ref_id, a.title, a.rating, a.created_at AS at, t.handle AS target_handle, t.display_name AS target_name
                FROM user_activity a LEFT JOIN users t ON t.user_id = a.target_user_id
               WHERE a.user_id = $1 ORDER BY a.created_at DESC LIMIT 60`, [id]),
       query(`SELECT (SELECT count(*)::int FROM follows WHERE followee_id = $1) AS followers,
-                    (SELECT count(*)::int FROM follows WHERE follower_id = $1) AS following`, [id]),
+                    (SELECT count(*)::int FROM follows WHERE follower_id = $1) AS following,
+                    (SELECT count(*)::int FROM comments WHERE user_id = $1) AS comments`, [id]),
+      // bookmarks are private: only the owner gets them
+      isOwner
+        ? query(`SELECT a.article_id AS id, a.title, a.category, a.read_minutes, s.created_at AS at, u.handle AS author_handle, u.display_name AS author_name
+                   FROM article_saves s JOIN articles a ON a.article_id = s.article_id AND a.status = 'published' JOIN users u ON u.user_id = a.author_id
+                  WHERE s.user_id = $1 ORDER BY s.created_at DESC LIMIT ${LIMIT}`, [id])
+        : Promise.resolve({ rows: [] }),
     ]);
 
     return json({
       user: publicUser(u),
-      counts: { ...counts.rows[0], watched: by('watched').length, liked: by('liked').length, onsite: by('onsite').length, reviews: reviews.rowCount, articles: articles.rowCount },
+      counts: { ...counts.rows[0], watched: by('watched').length, liked: by('liked').length, onsite: by('onsite').length, reviews: reviews.rowCount, articles: articles.rows.filter(r => r.status === 'published').length },
       watched: by('watched'), liked: by('liked'), onsite: by('onsite'),
       reviews: reviews.rows.map(r => ({ id: r.id, matchId: r.match_id, title: r.title, rating: r.rating, at: r.at })),
       followers: followers.rows.map(person), following: following.rows.map(person),
-      articles: articles.rows.map(r => ({ id: r.id, title: r.title, category: r.category, readMinutes: r.read_minutes, at: r.at })),
+      articles: articles.rows.map(r => ({ id: r.id, title: r.title, category: r.category, readMinutes: r.read_minutes, at: r.at, status: r.status, likes: r.likes })),
+      saved: saved.rows.map(r => ({ id: r.id, title: r.title, category: r.category, readMinutes: r.read_minutes, at: r.at, authorHandle: r.author_handle, authorName: r.author_name })),
       activity: activity.rows.map(r => ({ type: r.type, matchId: r.match_id, refId: r.ref_id, title: r.title, rating: r.rating, at: r.at, handle: r.target_handle, name: r.target_name })),
     });
   } catch (err) { return dbError(err); }

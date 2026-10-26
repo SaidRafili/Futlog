@@ -1,11 +1,13 @@
 'use client';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useData } from '../DataProvider';
-import { Comment, Composer, Crest, MiniBadge } from '../ui';
-import { COMPC, COMPN, fillers, reviews } from '@/lib/demo';
-import { agoText, avatarBg, fmt, ord } from '@/lib/util';
+import CommentSection from '../Comments';
+import { Avatar, Crest, LikeButton, MiniBadge } from '../ui';
+import { COMPC, COMPN } from '@/lib/consts';
+import { sendJSON } from '@/lib/profile';
+import { fmt, ord, profileHref, timeAgo } from '@/lib/util';
 
 const IC = {
   eye: <svg viewBox="0 0 64 44"><path d="M2 22C10 8 22 2 32 2s22 6 30 20c-8 14-20 20-30 20S10 36 2 22z" fill="currentColor" /><circle cx="32" cy="22" r="11" fill="#030305" /><circle cx="32" cy="22" r="5" fill="currentColor" /></svg>,
@@ -25,26 +27,41 @@ export default function MatchView() {
 }
 
 function MatchPage({ m }) {
-  const { T, demo, detail, marks, setMark } = useData();
+  const { T, detail, marks, setMark, me, meReady, openAuth } = useData();
   const h = T[m.h], a = T[m.a], d = detail(m);
-  const [s, setS] = useState({ rating: 0, posted: [] });
   const watched = marks.watched.has(m.id), liked = marks.liked.has(m.id); // saved to the profile in PostgreSQL
   const [tab, setTab] = useState('reviews');
   const tabsRef = useRef(null);
+  const who = me?.handle || '';
+
+  // counts, average rating and your own rating: GET /api/matches/:id (nothing here is made up)
+  const [stats, setStats] = useState(null);
+  const [ccount, setCcount] = useState(null);
+  const base = useRef({ watched: false, liked: false });
+  useEffect(() => {
+    if (!meReady) return;
+    let dead = false;
+    fetch('/api/matches/' + m.id, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => {
+      if (dead || !j) return;
+      base.current = { watched: marks.watched.has(m.id), liked: marks.liked.has(m.id) };   // what the counts already include
+      setStats(j);
+    }).catch(() => {});
+    return () => { dead = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [m.id, meReady, who]);
 
   useEffect(() => { document.title = `${h.n} ${m.hs}–${m.as} ${a.n} · Futlog`; }, [h, a, m]);
 
   const full = COMPN[m.comp] || m.comp;
-  const shown = s.rating || Math.round(d.avg);
-  const avg = s.rating ? (d.avg * d.rcount + s.rating) / (d.rcount + 1) : d.avg;
-  const rate = v => setS(x => ({ ...x, rating: x.rating === v ? 0 : v }));
-  const post = text => setS(x => ({ ...x, posted: [{ id: Date.now(), u: 'you', ago: 'just now', likes: 0, text }, ...x.posted] })); // TODO: send to your backend
+  const mine = stats?.mine || 0, avg = stats?.avg || 0;
+  const shown = mine || Math.round(avg);
+  const rate = async v => {
+    if (!me) { openAuth('signin'); return; }
+    try { setStats(await sendJSON('/api/matches/' + m.id, mine === v ? 'DELETE' : 'PUT', { rating: v })); } catch (e) { if (e.status === 401) openAuth('signin'); }
+  };
+  const views = (stats?.watched || 0) - (base.current.watched ? 1 : 0) + (watched ? 1 : 0);
+  const likes = (stats?.liked || 0) - (base.current.liked ? 1 : 0) + (liked ? 1 : 0);
 
-  const comments = [
-    ...s.posted.map(c => ({ ...c, key: 'p' + c.id })),
-    ...demo.comments.filter(c => c.m === m.id).map((c, i) => ({ ...c, key: 'd' + i })),
-    ...fillers.map((c, i) => ({ ...c, key: 'f' + i }))
-  ];
   const goals = [[m.h, m.hs], [m.a, m.as]].filter(x => x[1]);
 
   return (
@@ -79,18 +96,18 @@ function MatchPage({ m }) {
         <aside className="mp-side">
           <div className="stats">
             <div className="actions">
-              <button className={watched ? 'on' : ''} aria-pressed={watched} aria-label="Watched" title="Mark as watched" style={{ color: 'var(--accent)' }} onClick={() => setMark(m.id, 'watched', !watched)}>{IC.eye}<span>{fmt(d.views + (watched ? 1 : 0))}</span></button><i className="div" />
-              <button className={liked ? 'on' : ''} aria-pressed={liked} aria-label="Like" title="Like this match" style={{ color: '#ef2b3a' }} onClick={() => setMark(m.id, 'liked', !liked)}>{IC.heart}<span>{fmt(d.likes + (liked ? 1 : 0))}</span></button><i className="div" />
+              <button className={watched ? 'on' : ''} aria-pressed={watched} aria-label="Watched" title="Mark as watched" style={{ color: 'var(--accent)' }} onClick={() => setMark(m.id, 'watched', !watched)}>{IC.eye}<span>{fmt(Math.max(0, views))}</span></button><i className="div" />
+              <button className={liked ? 'on' : ''} aria-pressed={liked} aria-label="Like" title="Like this match" style={{ color: '#ef2b3a' }} onClick={() => setMark(m.id, 'liked', !liked)}>{IC.heart}<span>{fmt(Math.max(0, likes))}</span></button><i className="div" />
               <button className="on" aria-label="Go to comments" title="Go to comments" style={{ color: 'var(--accent)' }}
-                onClick={() => { setTab('comments'); tabsRef.current?.scrollIntoView({ behavior: 'smooth' }); }}>{IC.chat}<span>{fmt(d.ccount + s.posted.length)}</span></button>
+                onClick={() => { setTab('comments'); tabsRef.current?.scrollIntoView({ behavior: 'smooth' }); }}>{IC.chat}<span>{fmt(ccount ?? stats?.comments ?? 0)}</span></button>
             </div>
             <div className="rate">
               <div className="rate-bars" role="group" aria-label="Rate this match">
                 {Array.from({ length: 10 }, (_, k) => 10 - k).map(i => (
-                  <button key={i} className={`seg ${i <= shown ? 'on' : ''} ${s.rating ? 'mine' : ''}`} style={{ height: 8 + i * 2.6 }} aria-label={`Rate ${i} out of 10`} onClick={() => rate(i)} />
+                  <button key={i} className={`seg ${i <= shown ? 'on' : ''} ${mine ? 'mine' : ''}`} style={{ height: 8 + i * 2.6 }} aria-label={`Rate ${i} out of 10`} onClick={() => rate(i)} />
                 ))}
               </div>
-              <div className="rate-text"><b>{avg.toFixed(1)}</b>average · {fmt(d.rcount + (s.rating ? 1 : 0))} ratings<br />{s.rating ? `You rated ${s.rating}/10 · tap it again to remove` : 'Tap a bar to rate this match'}</div>
+              <div className="rate-text"><b>{stats?.ratings ? avg.toFixed(1) : '–'}</b>average · {fmt(stats?.ratings || 0)} {stats?.ratings === 1 ? 'rating' : 'ratings'}<br />{mine ? `You rated ${mine}/10 · tap it again to remove` : me ? 'Tap a bar to rate this match' : 'Sign in and tap a bar to rate this match'}</div>
             </div>
           </div>
           <div className="notch" />
@@ -114,24 +131,79 @@ function MatchPage({ m }) {
             ))}
           </div>
           <div hidden={tab !== 'comments'}>
-            <Composer placeholder="Add a comment on this match" onPost={post} />
-            <div className="mp-comments">{comments.map(c => <Comment key={c.key} c={c} time={agoText(c.ago)} />)}</div>
+            <CommentSection type="match" id={m.id} placeholder="Add a comment on this match" onCount={setCcount} />
           </div>
-          <div hidden={tab !== 'reviews'}>
-            <div className="reviews">
-              {reviews.map((r, i) => {
-                const col = r.r >= 9 ? '#6ee7a0' : r.r === 8 ? '#ffd84a' : '#ff9f6b';
-                return (
-                  <Link key={i} className="review" href={`/match/${m.id}`} style={{ '--stripe': col, '--a': i % 2 ? a.c : h.c, '--b': i % 2 ? h.c : a.c }}><i />
-                    <div className="r-body"><h3>{r.t}</h3><div className="r-by"><span className="r-avatar" style={{ background: avatarBg(r.u) }} />{r.u}<b>{r.r}/10</b></div><time>{r.ago}</time></div>
-                    <div className="r-thumb" />
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+          <div hidden={tab !== 'reviews'}><Reviews m={m} h={h} a={a} /></div>
         </div>
       </section>
     </main>
+  );
+}
+
+// Reviews of this match (table `reviews`): GET/POST/DELETE /api/reviews. One review per person.
+function Reviews({ m, h, a }) {
+  const { me, meReady, openAuth } = useData();
+  const [list, setList] = useState(null), [error, setError] = useState('');
+  const [f, setF] = useState({ title: '', body: '', rating: 8 }), [busy, setBusy] = useState(false), [fe, setFe] = useState({}), [msg, setMsg] = useState('');
+  const who = me?.handle || '';
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch('/api/reviews?matchId=' + m.id, { cache: 'no-store' });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || 'HTTP ' + res.status);
+      setList(j.reviews); setError('');
+    } catch (e) { setError(e.message); setList(l => l || []); }
+  }, [m.id]);
+  useEffect(() => { if (meReady) load(); }, [load, meReady, who]);
+
+  const submit = async e => {
+    e.preventDefault();
+    if (!me) { openAuth('signin'); return; }
+    setBusy(true); setFe({}); setMsg('');
+    try {
+      const { review } = await sendJSON('/api/reviews', 'POST', { matchId: m.id, ...f, rating: +f.rating });
+      setList(l => [review, ...(l || [])]); setF({ title: '', body: '', rating: 8 });
+    } catch (x) { setFe(x.fields || {}); setMsg(x.fields ? '' : x.message); }
+    finally { setBusy(false); }
+  };
+  const remove = async r => {
+    try { await sendJSON('/api/reviews', 'DELETE', { id: r.id }); setList(l => l.filter(x => x.id !== r.id)); } catch (x) { setMsg(x.message); }
+  };
+
+  const hasMine = list?.some(r => r.mine);
+  return (
+    <>
+      {!hasMine && (
+        <form className="rv-form" onSubmit={submit} noValidate>
+          <input value={f.title} onChange={e => setF(x => ({ ...x, title: e.target.value }))} placeholder={me ? 'Review title' : 'Sign in to write a review'} maxLength={200} aria-label="Review title" aria-invalid={!!fe.title} />
+          <textarea value={f.body} onChange={e => setF(x => ({ ...x, body: e.target.value }))} placeholder="What did you think? (optional)" rows={3} maxLength={5000} aria-label="Review text" />
+          <div className="rv-row">
+            <label>Rating <select value={f.rating} onChange={e => setF(x => ({ ...x, rating: e.target.value }))}>{Array.from({ length: 10 }, (_, k) => 10 - k).map(n => <option key={n} value={n}>{n}/10</option>)}</select></label>
+            <button type="submit" disabled={busy}>Post review</button>
+          </div>
+          {(fe.title || fe.body || fe.rating || msg) && <p className="st-err c-err" role="alert">{fe.title || fe.body || fe.rating || msg}</p>}
+        </form>
+      )}
+      {error && <p className="st-err c-err" role="alert">Could not load reviews: {error}</p>}
+      {list && !list.length && !error && <p className="empty">No reviews yet. Be the first to review this match.</p>}
+      <div className="reviews">
+        {list?.map((r, i) => {
+          const col = r.rating >= 9 ? '#6ee7a0' : r.rating === 8 ? '#ffd84a' : '#ff9f6b';
+          return (
+            <article key={r.id} className="review" style={{ '--stripe': col, '--a': i % 2 ? a.c : h.c, '--b': i % 2 ? h.c : a.c }}><i />
+              <div className="r-body">
+                <h3>{r.title}</h3>
+                <div className="r-by"><Avatar name={r.user.name} src={r.user.avatar} className="r-avatar" size={20} /><Link href={profileHref(r.user.handle)}>{r.user.name}</Link><b>{r.rating}/10</b></div>
+                {r.body && <p className="r-text">{r.body}</p>}
+                <div className="r-foot"><time>{timeAgo(r.at)}</time><LikeButton type="review" id={r.id} count={r.likes} liked={r.liked} />
+                  {r.mine && <button className="c-act" onClick={() => remove(r)}>Delete</button>}</div>
+              </div>
+              <div className="r-thumb" />
+            </article>
+          );
+        })}
+      </div>
+    </>
   );
 }

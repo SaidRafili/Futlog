@@ -17,7 +17,7 @@ export default function Footer() {
         </div>
         <nav className="ft-col" aria-label="Footer navigation">
           <h2>Explore</h2>
-          <Link href="/#matches">Matches</Link><Link href="/feed">Feed</Link><Link href="/article/1">Articles</Link><Link href="/settings">Profile &amp; settings</Link>
+          <Link href="/#matches">Matches</Link><Link href="/feed">Feed</Link><Link href="/#articles">Articles</Link><Link href="/write">Write an article</Link><Link href="/settings">Profile &amp; settings</Link>
         </nav>
         <nav className="ft-col" aria-label="Footer info links">
           <h2>Futlog</h2>

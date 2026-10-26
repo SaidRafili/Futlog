@@ -5,8 +5,8 @@ import { Fragment, useEffect, useState } from 'react';
 import { useData } from '../DataProvider';
 import MatchCard from '../MatchCard';
 import { Avatar, FollowButton, UserCard } from '../ui';
-import { PTABS, SORTS } from '@/lib/demo';
-import { fetchProfile, fromApi, fromDemo } from '@/lib/profile';
+import { PTABS, SORTS } from '@/lib/consts';
+import { fetchProfile, fromApi } from '@/lib/profile';
 import { daysAgo, hue, tAgo, uniq } from '@/lib/util';
 
 function PCard({ href, t, meta, d, a, b }) {
@@ -28,27 +28,28 @@ export default function ProfileView() {
   return <ProfileLoader key={h} h={h} tab={tab} />;
 }
 
-// Loads the profile from PostgreSQL (/api/users/:handle). Handles that are not in the database (the demo people) fall back
-// to the generated demo profile, so existing links keep working.
+// Loads the profile from PostgreSQL (/api/users/:handle). A handle that is not in the users table gets a "no such user" page.
 function ProfileLoader({ h, tab }) {
-  const { T, byId, getUser, me } = useData();
+  const { T, byId, me } = useData();
   const [st, setSt] = useState({ phase: 'loading' });
 
   useEffect(() => {
     let dead = false;
     fetchProfile(h)
-      .then(api => { if (!dead) setSt({ phase: 'ready', u: api ? fromApi(api, { byId, T }) : fromDemo(getUser(h), getUser) }); })
-      .catch(e => { if (!dead) setSt({ phase: 'ready', u: fromDemo(getUser(h), getUser), error: e.message }); });
+      .then(api => { if (!dead) setSt(api ? { phase: 'ready', u: fromApi(api, { byId, T }) } : { phase: 'missing' }); })
+      .catch(e => { if (!dead) setSt({ phase: 'error', error: e.message }); });
     return () => { dead = true; };
     // re-fetch after the settings page saved (me changes) so the own profile is never stale
-  }, [h, byId, T, getUser, me]);
+  }, [h, byId, T, me]);
 
   if (st.phase === 'loading') return <main id="profilePage"><div className="pf-cover" style={{ '--h': hue(h) }} /></main>;
-  return <ProfilePage key={h + '|' + tab} h={h} tab={tab} u={st.u} error={st.error} />; // filters/sort reset when the profile or tab changes
+  if (st.phase === 'missing') return <main id="profilePage"><div className="pf-cover" style={{ '--h': hue(h) }} /><div className="pf-wrap"><p className="empty">There is no user called @{h}. <Link href="/" style={{ color: 'var(--accent)' }}>Back to home</Link></p></div></main>;
+  if (st.phase === 'error') return <main id="profilePage"><div className="pf-cover" style={{ '--h': hue(h) }} /><div className="pf-wrap"><p className="pf-note" role="alert">Could not load this profile: {st.error}</p></div></main>;
+  return <ProfilePage key={h + '|' + tab} h={h} tab={tab} u={st.u} />; // filters/sort reset when the profile or tab changes
 }
 
 const ACT = {
-  watched: ['Watched', 'eye'], liked: ['Liked', 'heart'], onsite: ['Was at', 'pin'], review: ['Reviewed', 'star'], follow: ['Started following', 'user'], article: ['Published', 'doc'],
+  watched: ['Watched', 'eye'], liked: ['Liked', 'heart'], onsite: ['Was at', 'pin'], review: ['Reviewed', 'star'], comment: ['Commented', 'chat'], follow: ['Started following', 'user'], article: ['Published', 'doc'],
 };
 const ICON = {
   eye: <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zm10-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />,
@@ -57,6 +58,7 @@ const ICON = {
   star: <path d="M12 2l3 6.5 7 .9-5.2 4.8 1.4 7L12 17.8 5.8 21.2l1.4-7L2 9.4l7-.9z" />,
   user: <path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm-9 9c0-5 4-7 9-7s9 2 9 7z" />,
   doc: <path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5" />,
+  chat: <path d="M4 4h16v12H9l-5 4z" />,
 };
 
 function ActivityRow({ a, label }) {
@@ -69,13 +71,14 @@ function ActivityRow({ a, label }) {
     <li>
       <span className={`act-ic t-${a.type}`}><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">{ICON[icon]}</svg></span>
       <div><span className="act-v">{verb}</span> {what}
-        {a.type === 'review' && <div className="act-q">“{a.title}” <b>{a.rating}/10</b></div>}</div>
+        {a.type === 'review' && <div className="act-q">“{a.title}” <b>{a.rating}/10</b></div>}
+        {a.type === 'comment' && <div className="act-q">“{a.title}”</div>}</div>
       <time>{a.min < 1 ? 'just now' : tAgo(a.min) + ' ago'}</time>
     </li>
   );
 }
 
-function ProfilePage({ h, tab, u, error }) {
+function ProfilePage({ h, tab, u }) {
   const { T, matches, label } = useData();
   const { me: session } = useData();
   const me = !!session && h === session.handle;
@@ -97,7 +100,7 @@ function ProfilePage({ h, tab, u, error }) {
         <dl><dt>Joined</dt><dd>{u.joined}</dd><dt>Location</dt><dd>{u.loc}</dd>
           <dt>Favourite team</dt><dd>{u.fav ? <Link href={`/search?q=${encodeURIComponent(u.fav.n)}`}>{u.fav.n}</Link> : '—'}</dd>
           <dt>Recently watched</dt><dd>{rec.length ? rec.map((m, i) => <span key={m.id}>{i > 0 && <br />}<Link href={`/match/${m.id}`}>{label(m)}</Link></span>) : '—'}</dd></dl>
-        <div className="pf-chips">{PTABS.filter(([k]) => !['about', 'onsite', 'activity'].includes(k)).map(([k, l]) => <Link key={k} href={`/profile/${h}?tab=${k}`}>{l}</Link>)}</div>
+        <div className="pf-chips">{PTABS.filter(([k]) => !['about', 'onsite', 'activity'].includes(k) && (k !== 'saved' || me)).map(([k, l]) => <Link key={k} href={`/profile/${h}?tab=${k}`}>{l}</Link>)}</div>
       </div>
     );
   } else {
@@ -112,9 +115,10 @@ function ProfilePage({ h, tab, u, error }) {
     } else if (tab === 'reviews') {
       items = u.reviews.map((v, i) => ({ key: i, d: v.d, x: v.t + ' ' + label(v.m), f: v.r,
         node: <PCard href={`/match/${v.m.id}`} t={v.t} meta={`${T[v.m.h].n} ${v.m.hs}–${v.m.as} ${T[v.m.a].n} · ${v.r}/10`} d={v.d} a={T[v.m.h].c} b={T[v.m.a].c} /> }));
-    } else if (tab === 'articles') {
-      items = u.arts.map(a => ({ key: a.id, d: a.d, x: a.t,
-        node: <PCard href={`/article/${a.id}`} t={a.t} meta={a.m} d={a.d} a={`hsl(${hue(a.t)} 50% 35%)`} b={`hsl(${hue(a.t) + 60} 50% 25%)`} /> }));
+    } else if (tab === 'articles' || tab === 'saved') {
+      items = (tab === 'saved' ? u.saved : u.arts).map(a => ({ key: a.id, d: a.d, x: a.t,
+        node: <div className="pc-wrap"><PCard href={`/article/${a.id}`} t={a.t} meta={a.m} d={a.d} a={`hsl(${hue(a.t)} 50% 35%)`} b={`hsl(${hue(a.t) + 60} 50% 25%)`} />
+          {me && tab === 'articles' && <Link className="pc-edit" href={`/write/${a.id}`}>Edit</Link>}</div> }));
     } else { // followers | following
       mode = 'users';
       items = u[tab].map(x => ({ key: x.h, d: 0, x: x.name + ' ' + x.h, node: <UserCard u={x} /> }));
@@ -126,7 +130,7 @@ function ProfilePage({ h, tab, u, error }) {
       ? <div className={mode === 'grid' ? 'match-grid' : mode === 'users' ? 'pf-users' : mode === 'activity' ? '' : 'pf-cards'}>
           {mode === 'activity' ? <ul className="pf-act">{items.map(i => <Fragment key={i.key}>{i.node}</Fragment>)}</ul> : items.map(i => <Fragment key={i.key}>{i.node}</Fragment>)}
         </div>
-      : <p className="empty">{q || f ? 'Nothing matches your search or filter.' : tab === 'activity' ? `${u.name} has no activity yet.` : `${u.name} has nothing here yet.`}</p>;
+      : <p className="empty">{q || f ? 'Nothing matches your search or filter.' : tab === 'activity' ? `${u.name} has no activity yet.` : tab === 'saved' ? 'You have not saved any articles yet. Use the Save button on an article.' : tab === 'articles' && me ? 'You have not written an article yet. Use "Write article" above.' : `${u.name} has nothing here yet.`}</p>;
   }
 
   const cover = u.banner
@@ -137,16 +141,15 @@ function ProfilePage({ h, tab, u, error }) {
     <main id="profilePage">
       <div className={`pf-cover${u.banner ? ' img' : ''}`} style={cover} />
       <div className="pf-wrap">
-        {error && me && <p className="pf-note" role="alert">Showing a demo profile because your saved profile could not be loaded ({error}).</p>}
         <header className="pf-head">
           <Avatar name={u.name} src={u.avatar} className="pf-av" />
           <div className="pf-id"><h1>{u.name}</h1><div className="handle">@{u.h}</div>
-            {me ? <Link className="follow pf-edit" href="/settings">Edit profile</Link> : <FollowButton h={u.h} />}</div>
+            {me ? <><Link className="follow pf-edit" href="/settings">Edit profile</Link> <Link className="follow pf-edit" href="/write">Write article</Link></> : <FollowButton h={u.h} />}</div>
           <div className="pf-stats">{stats.map(([k, n, l]) => <Link key={k} href={`/profile/${u.h}?tab=${k}`}><b>{n}</b>{l}</Link>)}</div>
         </header>
         <div className="pf-body">
           <nav className="pf-side" aria-label="Profile sections">
-            {PTABS.map(([k, l]) => <Link key={k} href={`/profile/${h}?tab=${k}`} className={k === tab ? 'on' : ''}>{l}</Link>)}
+            {PTABS.filter(([k]) => k !== 'saved' || me).map(([k, l]) => <Link key={k} href={`/profile/${h}?tab=${k}`} className={k === tab ? 'on' : ''}>{l}</Link>)}
           </nav>
           <section>
             <div className="pf-tools">

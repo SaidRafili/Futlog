@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useData } from './DataProvider';
 import { avatarBg, profileHref } from '@/lib/util';
+import { sendJSON } from '@/lib/profile';
 
 // Team crest (was cr()): logo image if the team has one, otherwise the abbreviation.
 export function Crest({ t, big }) {
@@ -21,13 +22,30 @@ export function MiniBadge({ t }) {
 
 const HEART = 'M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z';
 
-export function LikeButton({ n }) {
-  const [on, setOn] = useState(false);
-  return (
-    <button className={`like${on ? ' on' : ''}`} aria-pressed={on} onClick={() => setOn(v => !v)}>
-      <svg width="15" height="15" viewBox="0 0 24 24"><path d={HEART} /></svg><span>{n + (on ? 1 : 0)}</span>
-    </button>
-  );
+// Like button saved in the `likes` table. type = 'article' | 'comment' | 'post' | 'review'. Flips at once, undone if the save fails.
+export function LikeButton({ type, id, count = 0, liked = false, className = 'like', children, onChange }) {
+  const { me, openAuth } = useData();
+  const [st, setSt] = useState({ on: liked, n: count });
+  useEffect(() => setSt({ on: liked, n: count }), [liked, count, id]);
+  const [busy, setBusy] = useState(false);
+  const toggle = async () => {
+    if (!me) { openAuth('signin'); return; }
+    if (busy) return;
+    const was = st; setBusy(true);
+    setSt({ on: !was.on, n: Math.max(0, was.n + (was.on ? -1 : 1)) });
+    try {
+      const r = await sendJSON('/api/likes', was.on ? 'DELETE' : 'POST', { type, id });
+      setSt({ on: r.liked, n: r.count }); onChange?.(r);
+    } catch (e) { setSt(was); if (e.status === 401) openAuth('signin'); }
+    finally { setBusy(false); }
+  };
+  return children
+    ? children({ on: st.on, n: st.n, toggle })
+    : (
+      <button className={`${className}${st.on ? ' on' : ''}`} aria-pressed={st.on} onClick={toggle} title={st.on ? 'Remove like' : 'Like'}>
+        <svg width="15" height="15" viewBox="0 0 24 24"><path d={HEART} /></svg><span>{st.n}</span>
+      </button>
+    );
 }
 
 export function FollowButton({ h }) {
@@ -55,46 +73,37 @@ export function Avatar({ name, src, className = 'c-avatar', size }) {
     : <span className={className} style={{ ...st, background: avatarBg(name, 45, 38) }}>{name[0]}</span>;
 }
 
-// `u` = { h, name, avatar } when the caller already has the person (profile lists); otherwise looked up from the demo data.
-export function UserCard({ h, u }) {
-  const { getUser, me } = useData();
-  const p = u || { h, name: getUser(h).name, avatar: null };
+// `u` = { h, name, avatar } (a person from the database)
+export function UserCard({ u }) {
+  const { me } = useData();
   return (
     <div className="ucard">
-      <Link className="uc-l" href={profileHref(p.h)}>
-        <Avatar name={p.name} src={p.avatar} />
-        <span><b>{p.name}</b><small>@{p.h}</small></span>
+      <Link className="uc-l" href={profileHref(u.h)}>
+        <Avatar name={u.name} src={u.avatar} />
+        <span><b>{u.name}</b><small>@{u.h}</small></span>
       </Link>
-      {p.h === me?.handle ? null : <FollowButton h={p.h} />}
+      {u.h === me?.handle ? null : <FollowButton h={u.h} />}
     </div>
   );
 }
 
-// Match/article comment (was mpComment()). `time` is the ready-to-show time text.
-export function Comment({ c, time }) {
-  return (
-    <article className="comment">
-      <div className="c-head">
-        <div className="c-avatar" style={{ background: avatarBg(c.u) }}>{c.u[0].toUpperCase()}</div>
-        <div><Link className="c-name" href={profileHref(c.u)}>{c.u}</Link><div className="c-time">{time}</div></div>
-      </div>
-      <p className="c-text">“{c.text}”</p>
-      <div className="c-foot"><LikeButton n={c.likes} /></div>
-    </article>
-  );
-}
-
-// Composer used under matches and articles.
-export function Composer({ placeholder, onPost }) {
-  const [v, setV] = useState('');
-  const submit = e => {
+// Text box + Post button. onPost(text) may be async; the box is cleared only when it succeeds.
+export function Composer({ placeholder, onPost, button = 'Post', max = 1000 }) {
+  const { me, openAuth } = useData();
+  const [v, setV] = useState(''), [busy, setBusy] = useState(false), [err, setErr] = useState('');
+  const submit = async e => {
     e.preventDefault();
-    const text = v.trim(); if (!text) return;
-    onPost(text); setV('');
+    const text = v.trim(); if (!text || busy) return;
+    if (!me) { openAuth('signin'); return; }
+    setBusy(true); setErr('');
+    try { await onPost(text); setV(''); } catch (x) { setErr(x.message || 'Could not save that'); } finally { setBusy(false); }
   };
   return (
-    <form className="composer" onSubmit={submit}>
-      <input value={v} onChange={e => setV(e.target.value)} placeholder={placeholder} aria-label="Add a comment" maxLength={280} /><button type="submit">Post</button>
-    </form>
+    <>
+      <form className="composer" onSubmit={submit}>
+        <input value={v} onChange={e => { setV(e.target.value); setErr(''); }} placeholder={me ? placeholder : 'Sign in to join the conversation'} aria-label={placeholder} maxLength={max} /><button type="submit" disabled={busy}>{button}</button>
+      </form>
+      {err && <p className="st-err c-err" role="alert">{err}</p>}
+    </>
   );
 }

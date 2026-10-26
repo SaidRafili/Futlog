@@ -1,5 +1,4 @@
 // Usage:  npm run db:schema          (runs scripts/schema.sql)
-//         npm run db:seed            (demo authors + demo activity for the profile page)
 // Runs a .sql file against the "teams" database using the same connection settings as the app (no psql needed).
 import fs from 'node:fs';
 import pg from 'pg';

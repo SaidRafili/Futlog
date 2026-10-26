@@ -1,5 +1,5 @@
 // Usage:  npm run user:claim -- <username> <email> <password>
-// Gives an existing user row (for example the seeded "saidrafili") an email + password so you can sign in as it.
+// Gives an existing user row (one that was created without a password) an email + password so you can sign in as it.
 // Only works for rows that have no password yet.
 import pg from 'pg';
 import { getPoolConfig } from '../lib/dbconfig.mjs';
