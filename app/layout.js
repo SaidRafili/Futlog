@@ -20,7 +20,7 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Poppins:wght@600;700&family=Prompt:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
-        <link rel="icon" type="image/png" href="/favicon.png" sizes="16x16">
+        <link rel="icon" type="image/png" href="/favicon.png" sizes="16x16" />
       </head>
       <body>
         <DataProvider>
