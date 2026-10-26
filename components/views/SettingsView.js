@@ -3,19 +3,29 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useData } from '../DataProvider';
 import { Avatar } from '../ui';
-import { AUTH } from '@/lib/demo';
-import { AVATAR, BANNER, ME_HANDLE, fetchProfile, prepareImage, sendJSON } from '@/lib/profile';
+import { AVATAR, BANNER, fetchProfile, prepareImage, sendJSON } from '@/lib/profile';
 import { hue } from '@/lib/util';
 
 const BIO_MAX = 500;
 
 export default function SettingsView() {
   const d = useData();
-  if (d.status !== 'ready') return null;
-  return <Settings />;
+  if (d.status !== 'ready' || !d.meReady) return null;
+  if (!d.me) {
+    return (
+      <main className="settings">
+        <h1 className="st-h1">Settings</h1>
+        <div className="st-card st-gate">
+          <p>Sign in to edit your profile, photo and banner.</p>
+          <div className="st-btns"><button className="btn primary" onClick={() => d.openAuth('signin')}>Sign in</button><button className="btn" onClick={() => d.openAuth('signup')}>Create account</button></div>
+        </div>
+      </main>
+    );
+  }
+  return <Settings key={d.me.handle} handle={d.me.handle} />;
 }
 
-function Settings() {
+function Settings({ handle }) {
   const { TL, refreshMe } = useData();
   const [saved, setSaved] = useState(null);          // what is in the database (null = no row yet)
   const [phase, setPhase] = useState('loading');     // loading | ready | error
@@ -25,12 +35,11 @@ function Settings() {
   const [busy, setBusy] = useState(''), [msg, setMsg] = useState(null), [fields, setFields] = useState({});
   const avatarIn = useRef(null), bannerIn = useRef(null);
 
-  const demo = AUTH.find(a => a.h === ME_HANDLE);
-  const toForm = u => ({ name: u?.name ?? demo?.n ?? '', bio: u?.bio ?? demo?.bio ?? '', location: u?.location ?? '', favTeamId: u?.favTeamId ?? '', bannerHue: u?.bannerHue ?? null });
+  const toForm = u => ({ name: u?.name ?? '', bio: u?.bio ?? '', location: u?.location ?? '', favTeamId: u?.favTeamId ?? '', bannerHue: u?.bannerHue ?? null });
 
   useEffect(() => {
     let dead = false;
-    fetchProfile(ME_HANDLE)
+    fetchProfile(handle)
       .then(api => { if (dead) return; setSaved(api?.user || null); setForm(toForm(api?.user)); setPhase('ready'); })
       .catch(e => { if (!dead) { setLoadError(e.message); setPhase('error'); } });
     return () => { dead = true; };
@@ -58,7 +67,7 @@ function Settings() {
     setBusy('save'); setMsg(null); setFields({});
     try {
       const body = { name: form.name, bio: form.bio, location: form.location, favTeamId: form.favTeamId === '' ? null : +form.favTeamId, bannerHue: form.bannerHue, ...pending };
-      const { user } = await sendJSON(`/api/users/${ME_HANDLE}`, 'PUT', body);
+      const { user } = await sendJSON(`/api/users/${handle}`, 'PUT', body);
       setSaved(user); setForm(toForm(user)); setPending({});
       refreshMe();
       setMsg({ text: 'Saved. Your profile is up to date.' });
@@ -74,19 +83,18 @@ function Settings() {
   if (phase === 'error') return <main className="settings"><h1>Settings</h1><p className="pf-note" role="alert">Could not load your profile: {loadError}</p></main>;
 
   const name = form.name.trim() || 'Your name';
-  const cover = banner ? { backgroundImage: `url("${banner}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : { '--h': form.bannerHue ?? hue(ME_HANDLE) };
+  const cover = banner ? { backgroundImage: `url("${banner}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : { '--h': form.bannerHue ?? hue(handle) };
 
   return (
     <main className="settings">
-      <div className="st-top"><h1>Settings</h1><Link href={`/profile/${ME_HANDLE}`}>View profile →</Link></div>
-      {!saved && <p className="pf-note">Your profile is not saved in the database yet. Save once to create it.</p>}
+      <div className="st-top"><h1>Settings</h1><Link href={`/profile/${handle}`}>View profile →</Link></div>
 
       <form onSubmit={save} noValidate>
         <section className="st-card" aria-labelledby="st-look">
           <h2 id="st-look">Banner and photo</h2>
           <div className="st-preview">
             <div className={`pf-cover${banner ? ' img' : ''}`} style={cover} />
-            <div className="st-prow"><Avatar name={name} src={avatar} className="pf-av" /><div><b>{name}</b><div className="handle">@{ME_HANDLE}</div></div></div>
+            <div className="st-prow"><Avatar name={name} src={avatar} className="pf-av" /><div><b>{name}</b><div className="handle">@{handle}</div></div></div>
           </div>
 
           <div className="st-row">
@@ -112,7 +120,7 @@ function Settings() {
           <div className="st-row">
             <label className="st-lab" htmlFor="st-hue"><b>Banner colour</b><small>{banner ? 'Used when there is no banner image.' : 'The colour of your default banner.'}</small></label>
             <div className="st-btns">
-              <input id="st-hue" type="range" min="0" max="359" className="hue" value={form.bannerHue ?? hue(ME_HANDLE)} onChange={e => set('bannerHue', +e.target.value)} />
+              <input id="st-hue" type="range" min="0" max="359" className="hue" value={form.bannerHue ?? hue(handle)} onChange={e => set('bannerHue', +e.target.value)} />
               {form.bannerHue !== null && <button type="button" className="btn ghost" onClick={() => set('bannerHue', null)}>Reset</button>}
             </div>
           </div>
@@ -127,8 +135,8 @@ function Settings() {
           </div>
           <div className="st-field">
             <label htmlFor="st-handle">Username</label>
-            <input id="st-handle" value={'@' + ME_HANDLE} disabled aria-describedby="st-handle-h" />
-            <small id="st-handle-h">Your profile address is /profile/{ME_HANDLE}. Usernames can’t be changed.</small>
+            <input id="st-handle" value={'@' + handle} disabled aria-describedby="st-handle-h" />
+            <small id="st-handle-h">Your profile address is /profile/{handle}. Usernames can’t be changed.</small>
           </div>
           <div className="st-field">
             <label htmlFor="st-bio">Bio</label>

@@ -1,6 +1,5 @@
 import { query } from '@/lib/db';
-import { ME_HANDLE } from '@/lib/util';
-import { MAX_AVATAR, MAX_BANNER, checkImage, cleanHandle, dbError, fail, findUser, imageSrc, isMe, json, publicUser, readBody } from '@/lib/users';
+import { MAX_AVATAR, MAX_BANNER, authorize, checkImage, cleanHandle, dbError, fail, findUser, imageSrc, json, liteFor, publicUser, readBody } from '@/lib/users';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -16,6 +15,7 @@ export async function GET(req, { params }) {
   try {
     const u = await findUser(handle);
     if (!u) return fail(404, 'No such user');
+    if (lite) return json(await liteFor(u));
     const id = u.user_id;
 
     const marks = await query(
@@ -26,9 +26,6 @@ export async function GET(req, { params }) {
         WHERE f.follower_id = $1 ORDER BY f.created_at DESC LIMIT ${LIMIT}`, [id]);
     const person = r => ({ handle: r.handle, name: r.name, avatar: imageSrc(r.handle, 'avatar', r.avatar_url, r.updated_at) });
 
-    if (lite) {
-      return json({ user: publicUser(u), watched: by('watched').map(x => x.id), liked: by('liked').map(x => x.id), following: following.rows.map(r => r.handle) });
-    }
 
     const [followers, reviews, articles, activity, counts] = await Promise.all([
       query(`SELECT u.handle, u.display_name AS name, u.avatar_url, u.updated_at FROM follows f JOIN users u ON u.user_id = f.follower_id
@@ -56,11 +53,11 @@ export async function GET(req, { params }) {
 }
 
 // PUT /api/users/:handle   body: { name, bio, location, favTeamId, avatar, banner, bannerHue }
-// Any field left out is unchanged; avatar/banner = null removes the image. Creates the row the first time the demo user saves.
+// Any field left out is unchanged; avatar/banner = null removes the image. Only the signed-in owner may do this.
 export async function PUT(req, { params }) {
   const handle = cleanHandle((await params).handle);
   if (!handle) return fail(404, 'No such user');
-  if (!isMe(handle)) return fail(403, 'You can only edit your own profile');
+  const auth = await authorize(req, handle); if (auth.res) return auth.res;
   const b = await readBody(req);
   if (!b) return fail(400, 'Send a JSON body');
 
@@ -89,19 +86,12 @@ export async function PUT(req, { params }) {
   if (Object.keys(errors).length) return fail(400, 'Some fields are invalid', { fields: errors });
 
   try {
-    let u = await findUser(handle);
-    if (!u) {
-      // first save by the demo user: create the row
-      const name = String(b.name ?? '').trim();
-      if (!name) return fail(400, 'Some fields are invalid', { fields: { name: 'Name is required' } });
-      await query('INSERT INTO users (handle, display_name) VALUES ($1, $2) ON CONFLICT (handle) DO NOTHING', [handle, name]);
-    }
     if (sets.length) {
       vals.push(handle);
       try { await query(`UPDATE users SET ${sets.join(', ')} WHERE handle = $${vals.length}`, vals); }
       catch (err) { if (err.code === '23503') return fail(400, 'Some fields are invalid', { fields: { favTeamId: 'Unknown team' } }); throw err; }
     }
-    u = await findUser(handle);
+    const u = await findUser(handle);
     return json({ user: publicUser(u) });
   } catch (err) { return dbError(err); }
 }

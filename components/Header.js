@@ -1,9 +1,8 @@
 'use client';
 import Link from 'next/link';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useData } from './DataProvider';
-import { ME_HANDLE } from '@/lib/util';
 
 function SearchBox() {
   const router = useRouter();
@@ -28,18 +27,43 @@ function SearchBox() {
 }
 
 export default function Header() {
+  const { me, meReady, openAuth, signOut } = useData();
+  const [menu, setMenu] = useState(false);
+  const box = useRef(null);
   const router = useRouter();
-  const { me } = useData();
+
+  useEffect(() => {
+    if (!menu) return;
+    const off = e => { if (!box.current?.contains(e.target)) setMenu(false); };
+    const esc = e => { if (e.key === 'Escape') setMenu(false); };
+    document.addEventListener('mousedown', off); document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', off); document.removeEventListener('keydown', esc); };
+  }, [menu]);
+
   return (
     <header className="topbar">
       <Link className="logo" href="/">Futlooooooooooog</Link>
       <Suspense fallback={<div className="search" />}><SearchBox /></Suspense>
       <nav className="nav"><Link href="/#matches">Matches</Link><Link href="/feed">Feed</Link></nav>
-      <button className="avatar-btn" aria-label="Your profile" title={me ? me.name : 'Your profile'} onClick={() => router.push('/profile/' + ME_HANDLE)}>
-        {me?.avatar
-          ? <img src={me.avatar} alt="" />
-          : <svg width="14" height="14" viewBox="0 0 24 24" fill="#1b1a3d"><circle cx="12" cy="8" r="4.5" /><path d="M3 21c0-5 4-7 9-7s9 2 9 7z" /></svg>}
-      </button>
+      {!meReady ? <span className="avatar-btn ph" aria-hidden="true" /> : me ? (
+        <div className="acct" ref={box}>
+          <button className="avatar-btn" aria-label="Account menu" aria-haspopup="menu" aria-expanded={menu} title={me.name} onClick={() => setMenu(m => !m)}>
+            {me.avatar
+              ? <img src={me.avatar} alt="" />
+              : <svg width="14" height="14" viewBox="0 0 24 24" fill="#1b1a3d"><circle cx="12" cy="8" r="4.5" /><path d="M3 21c0-5 4-7 9-7s9 2 9 7z" /></svg>}
+          </button>
+          {menu && (
+            <div className="acct-menu" role="menu">
+              <div className="acct-who"><b>{me.name}</b><small>@{me.handle}</small></div>
+              <Link role="menuitem" href={`/profile/${me.handle}`} onClick={() => setMenu(false)}>Your profile</Link>
+              <Link role="menuitem" href="/settings" onClick={() => setMenu(false)}>Settings</Link>
+              <button role="menuitem" onClick={async () => { setMenu(false); await signOut(); router.refresh(); }}>Sign out</button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <button className="signin-btn" onClick={() => openAuth('signin')}>Sign in</button>
+      )}
     </header>
   );
 }

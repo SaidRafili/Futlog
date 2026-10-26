@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useData } from './DataProvider';
-import { ME_HANDLE, avatarBg, profileHref } from '@/lib/util';
+import { avatarBg, profileHref } from '@/lib/util';
 
 // Team crest (was cr()): logo image if the team has one, otherwise the abbreviation.
 export function Crest({ t, big }) {
@@ -57,7 +57,7 @@ export function Avatar({ name, src, className = 'c-avatar', size }) {
 
 // `u` = { h, name, avatar } when the caller already has the person (profile lists); otherwise looked up from the demo data.
 export function UserCard({ h, u }) {
-  const { getUser } = useData();
+  const { getUser, me } = useData();
   const p = u || { h, name: getUser(h).name, avatar: null };
   return (
     <div className="ucard">
@@ -65,7 +65,7 @@ export function UserCard({ h, u }) {
         <Avatar name={p.name} src={p.avatar} />
         <span><b>{p.name}</b><small>@{p.h}</small></span>
       </Link>
-      {p.h === ME_HANDLE ? null : <FollowButton h={p.h} />}
+      {p.h === me?.handle ? null : <FollowButton h={p.h} />}
     </div>
   );
 }

@@ -8,7 +8,8 @@
     "start": "next start",
     "import:fixtures": "node --env-file=.env.local scripts/import-fixtures.mjs",
     "db:schema": "node --env-file=.env.local scripts/apply-sql.mjs scripts/schema.sql",
-    "db:seed": "node --env-file=.env.local scripts/apply-sql.mjs scripts/seed_demo_authors.sql && node --env-file=.env.local scripts/seed-demo-activity.mjs"
+    "db:seed": "node --env-file=.env.local scripts/apply-sql.mjs scripts/seed_demo_authors.sql && node --env-file=.env.local scripts/seed-demo-activity.mjs",
+    "user:claim": "node --env-file=.env.local scripts/claim-user.mjs"
   },
   "dependencies": {
     "next": "^16.3.6",

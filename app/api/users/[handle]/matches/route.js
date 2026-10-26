@@ -1,5 +1,5 @@
 import { query } from '@/lib/db';
-import { KINDS, cleanHandle, dbError, fail, isMe, json, readBody } from '@/lib/users';
+import { KINDS, authorize, cleanHandle, dbError, fail, json, readBody } from '@/lib/users';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 async function parse(req, params) {
   const handle = cleanHandle((await params).handle);
   if (!handle) return { res: fail(404, 'No such user') };
-  if (!isMe(handle)) return { res: fail(403, 'You can only change your own activity') };
+  const auth = await authorize(req, handle); if (auth.res) return { res: auth.res };
   const b = await readBody(req);
   const matchId = Number(b?.matchId);
   if (!Number.isInteger(matchId) || matchId <= 0 || !KINDS.includes(b?.kind)) return { res: fail(400, 'Need matchId and kind (watched, liked or onsite)') };
@@ -19,10 +19,8 @@ async function parse(req, params) {
 export async function POST(req, { params }) {
   const p = await parse(req, params); if (p.res) return p.res;
   try {
-    const r = await query(
+    await query(
       `INSERT INTO user_matches (user_id, match_id, kind) SELECT user_id, $2, $3 FROM users WHERE handle = $1 ON CONFLICT DO NOTHING`, [p.handle, p.matchId, p.kind]);
-    if (!r.rowCount && !(await query('SELECT 1 FROM users WHERE handle = $1', [p.handle])).rowCount)
-      return fail(404, 'Create your profile first: open Settings and save once');
     return json({ ok: true });
   } catch (err) { return dbError(err); }
 }

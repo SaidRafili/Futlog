@@ -37,6 +37,11 @@ Optional demo content for the profile page: `npm run db:seed` (needs `fixtures` 
   The first save creates your `users` row.
 - Match page: the Watched and Like buttons save to the profile (`POST/DELETE /api/users/[handle]/matches`).
 - Follow buttons save to `follows` (`POST/DELETE /api/follows`).
-- **No sign-in yet:** the whole site acts as the user in `ME_HANDLE` (`lib/util.js`, default `saidrafili`). The write endpoints only
-  accept that handle. When you add auth, replace `ME_HANDLE` / `isMe()` (`lib/users.js`) with the session user.
+- **Sign in / sign up popup:** the header's *Sign in* button (and any Watched / Like / Follow click while signed out) opens it.
+  `POST /api/auth/signup | login | logout`, `GET /api/auth/me`. Passwords are hashed with scrypt (`lib/password.mjs`); a random session
+  token lives in an httpOnly cookie and only its hash is stored (`sessions` table). Failed sign-ins are rate-limited (`auth_attempts`),
+  and every write checks the session and the request origin. Re-run `npm run db:schema` to add the two new tables.
+- **Existing seeded users** (e.g. `saidrafili`) have no password. Claim one with
+  `npm run user:claim -- saidrafili you@example.com 'your password'`.
+- Not included yet: email verification and "forgot password".
 - Favicon: `app/favicon.ico`, `app/icon.png`, `app/apple-icon.png`, `app/manifest.js` (+ `public/icon-*.png`).

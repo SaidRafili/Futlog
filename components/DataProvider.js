@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { loadAll } from '@/lib/data';
-import { ME_HANDLE } from '@/lib/util';
+import { setMeHandle } from '@/lib/util';
 import { sendJSON } from '@/lib/profile';
 
 export const DataContext = createContext({ status: 'loading' });
@@ -21,23 +21,33 @@ export default function DataProvider({ children }) {
     return () => { dead = true; };
   }, []);
 
-  // The signed-in (demo) user: profile row + what they have watched / liked + who they follow, all from PostgreSQL.
-  // If the profile tables are not set up yet this stays null and the site keeps working with local-only state.
+  // The signed-in user (session cookie -> /api/auth/me): profile + what they watched / liked + who they follow.
+  // me === null means signed out; meReady is false until the first answer arrives.
   const [me, setMe] = useState(null);
+  const [meReady, setMeReady] = useState(false);
+  const [auth, setAuth] = useState({ open: false, mode: 'signin' });   // the sign-in / sign-up popup
+  const openAuth = useCallback((mode = 'signin') => setAuth({ open: true, mode }), []);
+  const closeAuth = useCallback(() => setAuth(a => ({ ...a, open: false })), []);
   const [marks, setMarks] = useState(() => ({ watched: new Set(), liked: new Set() }));
   const [toast, setToast] = useState('');
 
   const refreshMe = useCallback(async () => {
     try {
-      const res = await fetch(`/api/users/${ME_HANDLE}?lite=1`, { cache: 'no-store' });
-      if (!res.ok) { setMe(null); return; }
-      const j = await res.json();
-      setMe(j.user);
-      setMarks({ watched: new Set(j.watched), liked: new Set(j.liked) });
-      setFollowing(new Set(j.following));
-    } catch { /* no database profile: keep working locally */ }
+      const res = await fetch('/api/auth/me', { cache: 'no-store' });
+      const j = res.ok ? await res.json() : { user: null };
+      setMe(j.user || null);
+      setMarks({ watched: new Set(j.watched || []), liked: new Set(j.liked || []) });
+      setFollowing(new Set(j.following || []));
+    } catch { setMe(null); }          // database not reachable / tables missing: the site still works signed out
+    setMeReady(true);
   }, []);
   useEffect(() => { refreshMe(); }, [refreshMe]);
+  setMeHandle(me?.handle);
+
+  const signOut = useCallback(async () => {
+    try { await sendJSON('/api/auth/logout', 'POST', {}); } catch { /* cookie may already be gone */ }
+    await refreshMe();
+  }, [refreshMe]);
 
   useEffect(() => {
     if (!toast) return;
@@ -47,22 +57,28 @@ export default function DataProvider({ children }) {
 
   // optimistic follow: the UI flips at once, the database follows. Demo users that are not in the users table just stay local.
   const toggleFollow = useCallback(h => {
+    if (!me) { openAuth('signin'); return; }
     let on = false;
     setFollowing(s => { const n = new Set(s); on = !n.has(h); on ? n.add(h) : n.delete(h); return n; });
-    queueMicrotask(() => sendJSON('/api/follows', on ? 'POST' : 'DELETE', { handle: h }).catch(() => { /* not a database user: local only */ }));
-  }, []);
+    // demo people are not in the users table (404): the follow just stays local for them
+    queueMicrotask(() => sendJSON('/api/follows', on ? 'POST' : 'DELETE', { handle: h }).catch(e => {
+      if (e.status === 401) { setFollowing(s => { const n = new Set(s); n.delete(h); return n; }); openAuth('signin'); }
+    }));
+  }, [me, openAuth]);
 
   // watched / liked / on-site on a match are saved to the profile; reverted with a message if the save fails
   const setMark = useCallback((matchId, kind, on) => {
+    if (!me) { openAuth('signin'); return; }
     const flip = v => setMarks(m => { const s = new Set(m[kind]); v ? s.add(matchId) : s.delete(matchId); return { ...m, [kind]: s }; });
     flip(on);
-    sendJSON(`/api/users/${ME_HANDLE}/matches`, on ? 'POST' : 'DELETE', { matchId, kind }).catch(e => {
+    sendJSON(`/api/users/${me.handle}/matches`, on ? 'POST' : 'DELETE', { matchId, kind }).catch(e => {
       flip(!on);
-      setToast(e.message || 'Could not save that');
+      if (e.status === 401) openAuth('signin'); else setToast(e.message || 'Could not save that');
     });
-  }, []);
+  }, [me, openAuth]);
 
-  const value = useMemo(() => ({ ...state, following, toggleFollow, me, refreshMe, marks, setMark }), [state, following, toggleFollow, me, refreshMe, marks, setMark]);
+  const value = useMemo(() => ({ ...state, following, toggleFollow, me, meReady, refreshMe, signOut, auth, openAuth, closeAuth, marks, setMark }),
+    [state, following, toggleFollow, me, meReady, refreshMe, signOut, auth, openAuth, closeAuth, marks, setMark]);
 
   return (
     <DataContext.Provider value={value}>

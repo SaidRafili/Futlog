@@ -42,7 +42,7 @@ export default function FeedView() {
 }
 
 function FeedPage() {
-  const { T, matches, byId, label, getUser, feed0, following } = useData();
+  const { T, matches, byId, label, getUser, feed0, following, me } = useData();
   const [posts, setPosts] = useState(feed0);
   const [tab, setTab] = useState('latest');
   const [fm, setFm] = useState(0);                       // match filter
@@ -59,7 +59,7 @@ function FeedPage() {
 
   const cnt = {}; posts.forEach(p => p.m && (cnt[p.m] = (cnt[p.m] || 0) + 1));
   const hot = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id]) => byId(+id));
-  const sug = POOL.filter(x => x !== 'saidrafili' && !following.has(x)).slice(0, 3);
+  const sug = POOL.filter(x => x !== me?.handle && !following.has(x)).slice(0, 3);
 
   const submit = e => {
     e.preventDefault();

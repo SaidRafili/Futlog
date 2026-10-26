@@ -157,3 +157,23 @@ CREATE OR REPLACE VIEW user_activity AS
     UNION ALL
     SELECT author_id, 'article', NULL, NULL, article_id, title, NULL, published_at
       FROM articles WHERE status = 'published';
+
+
+-- =====================================================================
+-- SIGN-IN: sessions + failed-attempt log   (safe to re-run)
+-- =====================================================================
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_idx ON users (lower(email));   -- emails are stored lower-case
+
+CREATE TABLE IF NOT EXISTS sessions (
+    token_hash TEXT PRIMARY KEY,                     -- sha256 of the cookie value; the cookie itself is never stored
+    user_id    BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS sessions_user_idx ON sessions (user_id);
+
+CREATE TABLE IF NOT EXISTS auth_attempts (           -- failed sign-ins, used to block brute-force guessing
+    key TEXT NOT NULL,                               -- 'id:<username or email>' or 'ip:<address>'
+    at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS auth_attempts_key_idx ON auth_attempts (key, at DESC);

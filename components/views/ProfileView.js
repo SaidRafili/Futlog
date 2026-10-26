@@ -7,7 +7,7 @@ import MatchCard from '../MatchCard';
 import { Avatar, FollowButton, UserCard } from '../ui';
 import { PTABS, SORTS } from '@/lib/demo';
 import { fetchProfile, fromApi, fromDemo } from '@/lib/profile';
-import { ME_HANDLE, daysAgo, hue, tAgo, uniq } from '@/lib/util';
+import { daysAgo, hue, tAgo, uniq } from '@/lib/util';
 
 function PCard({ href, t, meta, d, a, b }) {
   return (
@@ -77,7 +77,8 @@ function ActivityRow({ a, label }) {
 
 function ProfilePage({ h, tab, u, error }) {
   const { T, matches, label } = useData();
-  const me = h === ME_HANDLE;
+  const { me: session } = useData();
+  const me = !!session && h === session.handle;
   const [q, setQ] = useState(''), [f, setF] = useState(''), [s, setS] = useState('new');
 
   useEffect(() => { document.title = `${u.name} (@${h}) · Futlog`; }, [u, h]);
@@ -137,7 +138,6 @@ function ProfilePage({ h, tab, u, error }) {
       <div className={`pf-cover${u.banner ? ' img' : ''}`} style={cover} />
       <div className="pf-wrap">
         {error && me && <p className="pf-note" role="alert">Showing a demo profile because your saved profile could not be loaded ({error}).</p>}
-        {me && !u.db && !error && <p className="pf-note">This profile is not saved in the database yet. <Link href="/settings">Open Settings</Link> and save once to create it.</p>}
         <header className="pf-head">
           <Avatar name={u.name} src={u.avatar} className="pf-av" />
           <div className="pf-id"><h1>{u.name}</h1><div className="handle">@{u.h}</div>
