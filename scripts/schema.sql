@@ -331,3 +331,20 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   RAISE NOTICE 'pg_trgm is not available (%): search will not tolerate typos', SQLERRM;
 END $$;
+
+-- ============================================================
+-- LEAGUES + VENUES  (names / logo / season label shown next to fixtures; read by GET /api/lookups)
+-- Load them with leagues_venues.sql.  Both are optional: without them the site shows "League 9" / "Venue #id".
+-- ============================================================
+CREATE TABLE IF NOT EXISTS leagues (
+    leagueid   INT PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL,
+    shortname  VARCHAR(50)  NOT NULL,
+    season     VARCHAR(20)  NOT NULL,
+    logourl    VARCHAR(255) NOT NULL,
+    slug       VARCHAR(100) NOT NULL
+);
+CREATE TABLE IF NOT EXISTS venues (
+    venueid    INT PRIMARY KEY,
+    fullname   VARCHAR(150) NOT NULL
+);

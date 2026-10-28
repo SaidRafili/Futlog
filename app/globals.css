@@ -118,6 +118,8 @@ button{font:inherit;color:inherit}
 .red{color:#d21f2b}
 .emblem{display:grid;place-items:center;padding:0 12px;text-align:center;font:600 9px/1.25 'Prompt',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#14112b;max-width:96px}
 .emblem svg{width:34px;height:34px;margin-bottom:4px}
+.emblem img{width:34px;height:34px;object-fit:contain;margin-bottom:4px}
+.m-lg{width:11px;height:11px;object-fit:contain;vertical-align:-2px;margin-right:4px}
 .mp-photo{position:relative;min-height:360px;background-size:cover;background-position:center;
   background-image:linear-gradient(120deg,color-mix(in srgb,var(--a,#333) 35%,transparent),transparent 45%,color-mix(in srgb,var(--b,#333) 35%,transparent)),linear-gradient(to bottom,#1b2a35 0,#26402f 58%,#1d3a25 58%,#0f230f 100%)}
 .mp-photo::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(0,0,0,.28) 0 2px,transparent 2px 9px)}

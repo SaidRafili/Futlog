@@ -85,7 +85,7 @@ function MatchPage({ m }) {
                 </div>
                 <div>{d.venue}</div>
               </div>
-              <div className="emblem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="10" /><path d="M12 7l4 3-1.5 5h-5L8 10z" /></svg>{full}</div>
+              <div className="emblem">{m.leagueLogo ? <img src={m.leagueLogo} alt="" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="10" /><path d="M12 7l4 3-1.5 5h-5L8 10z" /></svg>}{full}</div>
             </div>
           </div>
         </div>

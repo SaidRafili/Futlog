@@ -17,12 +17,18 @@ const FIELDS = {
   homeTeamShootoutScore: ['hometeamshootoutscore', 'homeshootoutscore'],
   awayTeamShootoutScore: ['awayteamshootoutscore', 'awayshootoutscore'],
   statusId: ['statusid'],
+  season: ['seasontype'],
 };
 const REQUIRED = ['eventId', 'date', 'homeTeamId', 'awayTeamId'];
 
 const norm = (s) => s.toLowerCase().replace(/_/g, '');
 const quote = (s) => '"' + s.replace(/"/g, '""') + '"';
 const isText = (t) => /char|text/i.test(t);
+
+const textExpr = (c) =>
+  isText(c.data_type)
+    ? `NULLIF(TRIM(${quote(c.column_name)}), '')`
+    : `${quote(c.column_name)}::text`;
 
 const intExpr = (c) =>
   isText(c.data_type)
@@ -62,6 +68,7 @@ export async function GET() {
       const c = pick(key);
       if (!c) return `NULL AS ${quote(key)}`;
       if (key === 'date') return `${dateExpr(c)} AS ts`;
+      if (key === 'season') return `${textExpr(c)} AS ${quote(key)}`;
       if (key === 'venueId') return `COALESCE(${intExpr(c)}, 0) AS ${quote(key)}`;
       return `${intExpr(c)} AS ${quote(key)}`;
     });
@@ -72,7 +79,7 @@ export async function GET() {
              to_char(ts AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS "date",
              "leagueId", "venueId", attendance, "homeTeamId", "awayTeamId",
              "homeTeamScore", "awayTeamScore",
-             "homeTeamShootoutScore", "awayTeamShootoutScore", "statusId"
+             "homeTeamShootoutScore", "awayTeamShootoutScore", "statusId", season
         FROM f
        ORDER BY ts DESC NULLS LAST, "eventId" DESC`;
 
