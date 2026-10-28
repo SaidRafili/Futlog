@@ -813,8 +813,7 @@ mark{background:rgba(167,139,250,.28);color:#fff;border-radius:3px;padding:0 1px
 /* v3: no background pattern; the scoreboard reaches the screen edge, ticket + info cards are narrower */
 :root{--mp-padv:max(16px,calc((100vw - var(--page-w))/2 + 16px));--mp-card:360px}
 .mp-hero{grid-template-columns:420px minmax(0,1fr)}
-.board{margin-left:calc(-1 * var(--mp-padv));grid-template-columns:calc(112px + var(--mp-padv)) minmax(0,1fr) 112px}
-.board .tblock:first-child{padding-left:var(--mp-padv)}
+.board{margin-left:calc(-1 * var(--mp-padv))}
 .cred{right:auto;width:var(--mp-card)}
 .mp-body{grid-template-columns:var(--mp-card) minmax(0,1fr);gap:32px}
 @media (max-width:1100px){:root{--mp-card:320px}.mp-hero{grid-template-columns:380px minmax(0,1fr)}}
