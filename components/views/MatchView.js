@@ -76,18 +76,24 @@ function MatchPage({ m }) {
             <div className="tblock" style={{ background: a.c, color: a.t }}><Crest t={a} big />{a.n}</div>
           </div>
           <div className="cred">
-            <div className="mp-title"><h2>Match credentials</h2></div>
-            <div className="cred-card">
-              <div className="cred-strip" style={{ background: COMPC[m.comp] || '#222' }}>{m.comp}</div>
-              <div className="cred-body">
-                <div>{m.stage ? m.stage + ' / ' : ''}{m.season}
-                  <small>{d.pair.length > 1
-                    ? <><span className="red">{ord(d.n)}</span> of {d.pair.length} meetings on record</>
-                    : <><span className="red">Only</span> meeting on record</>}</small>
-                </div>
-                <div>{d.venue}</div>
+            <div className="ticket" style={{ '--tc': COMPC[m.comp] || '#5b4fd6' }}>
+              <div className="tk-main">
+                <div className="tk-head"><span>Match ticket</span><span>No. {String(m.id).padStart(7, '0')}</span></div>
+                <dl className="tk-grid">
+                  <div><dt>Date</dt><dd>{d.date}</dd></div>
+                  <div><dt>Kick-off</dt><dd>{d.ko}</dd></div>
+                  <div className="wide"><dt>Stage</dt><dd>{[m.stage, m.season].filter(Boolean).join(' · ')}</dd></div>
+                  <div className="wide"><dt>Venue</dt><dd>{d.venue}</dd></div>
+                </dl>
+                <div className="tk-meet">{d.pair.length > 1
+                  ? <><span className="red">{ord(d.n)}</span> of {d.pair.length} meetings on record</>
+                  : <><span className="red">Only</span> meeting on record</>}</div>
               </div>
-              <div className="emblem">{m.leagueLogo ? <img src={m.leagueLogo} alt="" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="10" /><path d="M12 7l4 3-1.5 5h-5L8 10z" /></svg>}{full}</div>
+              <div className="tk-stub">
+                {m.leagueLogo ? <img src={m.leagueLogo} alt="" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="10" /><path d="M12 7l4 3-1.5 5h-5L8 10z" /></svg>}
+                <span>{full}</span>
+                <i aria-hidden="true" />
+              </div>
             </div>
           </div>
         </div>

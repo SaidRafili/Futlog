@@ -770,3 +770,50 @@ mark{background:rgba(167,139,250,.28);color:#fff;border-radius:3px;padding:0 1px
 .mp-art-t p{font-size:12px;color:var(--muted)}
 .mp-art-s{font-size:11px!important}
 @media (max-width:560px){.mp-art{grid-template-columns:84px 1fr}}
+
+/* ---------- match page layout v2: full-bleed hero, compact columns, ticket on the hero/body edge ---------- */
+:root{--mp-col:420px;--mp-pad:max(16px,calc((100% - var(--page-w))/2 + 16px))}
+.mp-hero{max-width:none;margin:8px 0 0;overflow-x:clip;overflow-y:visible;grid-template-columns:var(--mp-col) minmax(0,1fr);padding-left:var(--mp-pad);column-gap:32px;position:relative;z-index:2}
+.mp-left{padding:24px 0 96px;position:relative;z-index:1}
+.mp-left::before{content:"";position:absolute;z-index:-1;top:-8px;bottom:0;left:-100vw;right:0;pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 50%,transparent 0 46px,rgba(167,139,250,.10) 46px 48px,transparent 48px) 0 0/190px 190px,
+    repeating-linear-gradient(135deg,rgba(167,139,250,.07) 0 1px,transparent 1px 14px),
+    radial-gradient(rgba(255,255,255,.05) 1px,transparent 1.4px) 0 0/18px 18px,
+    linear-gradient(180deg,#07071a,var(--panel));
+  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 30%);mask-image:linear-gradient(to right,transparent 0,#000 30%)}
+.cred{position:absolute;left:0;right:0;bottom:0;transform:translateY(50%);padding:0;z-index:3;filter:drop-shadow(0 6px 10px rgba(0,0,0,.3))}
+.mp-photo{margin-right:0}
+.mp-body{max-width:var(--page-w);margin:0 auto;padding:28px 16px 48px;grid-template-columns:var(--mp-col) minmax(0,1fr);gap:32px}
+.mp-side{padding:84px 0 0}
+.mp-main{padding:0}
+
+/* ticket */
+.ticket{--cut:96px;display:grid;grid-template-columns:minmax(0,1fr) var(--cut);background:#f6f3ff;color:#14112b;font-family:'Marcellus',serif;
+  border-top:6px solid var(--tc);
+  -webkit-mask-image:radial-gradient(circle 9px at 0 55%,#0000 97%,#000),radial-gradient(circle 9px at 100% 55%,#0000 97%,#000),radial-gradient(circle 8px at calc(100% - var(--cut)) 0,#0000 97%,#000),radial-gradient(circle 8px at calc(100% - var(--cut)) 100%,#0000 97%,#000);
+  mask-image:radial-gradient(circle 9px at 0 55%,#0000 97%,#000),radial-gradient(circle 9px at 100% 55%,#0000 97%,#000),radial-gradient(circle 8px at calc(100% - var(--cut)) 0,#0000 97%,#000),radial-gradient(circle 8px at calc(100% - var(--cut)) 100%,#0000 97%,#000);
+  mask-composite:intersect;-webkit-mask-composite:source-in,source-in,source-in,source-in}
+.tk-main{padding:10px 16px 12px 22px;display:grid;gap:8px;min-width:0}
+.tk-head{display:flex;justify-content:space-between;gap:10px;font:600 9px 'Prompt',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--tc)}
+.tk-head span:last-child{color:#8a86a8;letter-spacing:.08em}
+.tk-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.tk-grid .wide{grid-column:1/-1}
+.tk-grid dt{font:600 8.5px 'Prompt',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8a86a8}
+.tk-grid dd{font-size:14px;line-height:1.25}
+.tk-meet{font:11px 'Prompt',sans-serif;color:#4b4770;border-top:1px dashed #c9c4e6;padding-top:6px}
+.tk-stub{position:relative;display:grid;place-items:center;align-content:center;gap:6px;padding:10px 8px;text-align:center;border-left:2px dashed #c9c4e6;font:600 8.5px/1.25 'Prompt',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#14112b;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.04))}
+.tk-stub img,.tk-stub svg{width:34px;height:34px;object-fit:contain}
+.tk-stub i{width:34px;height:14px;background:repeating-linear-gradient(90deg,#14112b 0 2px,transparent 2px 4px,#14112b 4px 5px,transparent 5px 8px);opacity:.75}
+
+@media (max-width:1100px){:root{--mp-col:360px}}
+@media (max-width:900px){
+  .mp-hero{grid-template-columns:1fr;padding-left:0;column-gap:0}
+  .mp-left{padding:20px 16px 0}
+  .mp-left::before{left:0}
+  .cred{position:relative;transform:none;margin-top:20px;margin-bottom:-24px;padding:0}
+  .mp-body{grid-template-columns:1fr;padding:44px 16px 32px;gap:20px}
+  .mp-side{padding:0}
+  .mp-photo{order:-1}
+}
+@media (max-width:480px){.ticket{--cut:78px}.tk-grid dd{font-size:13px}}
