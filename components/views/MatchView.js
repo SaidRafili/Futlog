@@ -4,10 +4,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useData } from '../DataProvider';
 import CommentSection from '../Comments';
-import { Avatar, Crest, LikeButton, MiniBadge } from '../ui';
+import PostCard from '../PostCard';
+import PostComposer from '../PostComposer';
+import { Crest, MiniBadge } from '../ui';
 import { COMPC, COMPN } from '@/lib/consts';
 import { sendJSON } from '@/lib/profile';
-import { fmt, ord, profileHref, timeAgo } from '@/lib/util';
+import { fmt, ord, timeAgo } from '@/lib/util';
 
 const IC = {
   eye: <svg viewBox="0 0 64 44"><path d="M2 22C10 8 22 2 32 2s22 6 30 20c-8 14-20 20-30 20S10 36 2 22z" fill="currentColor" /><circle cx="32" cy="22" r="11" fill="#030305" /><circle cx="32" cy="22" r="5" fill="currentColor" /></svg>,
@@ -30,7 +32,7 @@ function MatchPage({ m }) {
   const { T, detail, marks, setMark, me, meReady, openAuth } = useData();
   const h = T[m.h], a = T[m.a], d = detail(m);
   const watched = marks.watched.has(m.id), liked = marks.liked.has(m.id); // saved to the profile in PostgreSQL
-  const [tab, setTab] = useState('reviews');
+  const [tab, setTab] = useState('comments');
   const tabsRef = useRef(null);
   const who = me?.handle || '';
 
@@ -128,84 +130,70 @@ function MatchPage({ m }) {
 
         <div className="mp-main">
           <div className="tabs" ref={tabsRef} role="tablist">
-            {['comments', 'reviews'].map(t => (
+            {['comments', 'articles', 'posts'].map(t => (
               <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t}</button>
             ))}
           </div>
           <div hidden={tab !== 'comments'}>
             <CommentSection type="match" id={m.id} placeholder="Add a comment on this match" onCount={setCcount} />
           </div>
-          <div hidden={tab !== 'reviews'}><Reviews m={m} h={h} a={a} /></div>
+          <div hidden={tab !== 'articles'}><MatchArticles m={m} active={tab === 'articles'} /></div>
+          <div hidden={tab !== 'posts'}><MatchPosts m={m} active={tab === 'posts'} /></div>
         </div>
       </section>
     </main>
   );
 }
 
-// Reviews of this match (table `reviews`): GET/POST/DELETE /api/reviews. One review per person.
-function Reviews({ m, h, a }) {
-  const { me, meReady, openAuth } = useData();
+// Articles tagged with this match: GET /api/articles?matchId=
+function MatchArticles({ m, active }) {
+  const { meReady, me } = useData();
   const [list, setList] = useState(null), [error, setError] = useState('');
-  const [f, setF] = useState({ title: '', body: '', rating: 8 }), [busy, setBusy] = useState(false), [fe, setFe] = useState({}), [msg, setMsg] = useState('');
+  useEffect(() => {
+    if (!active || !meReady || list) return;
+    fetch('/api/articles?sort=top&limit=30&matchId=' + m.id, { cache: 'no-store' })
+      .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status); setList(j.articles); })
+      .catch(e => { setError(e.message); setList([]); });
+  }, [active, meReady, m.id, list, me]);
+  if (error) return <p className="st-err c-err" role="alert">Could not load articles: {error}</p>;
+  if (!list) return <p className="empty">Loading…</p>;
+  if (!list.length) return <p className="empty">No articles about this match yet. <Link href="/write" style={{ color: 'var(--accent)' }}>Write the first one.</Link></p>;
+  return (
+    <div className="mp-arts">
+      {list.map(a => (
+        <Link key={a.id} className="mp-art" href={`/article/${a.id}`}>
+          <div className="mp-art-img" role="img" aria-label="" style={a.cover ? { backgroundImage: `url('${a.cover}')` } : undefined}>{a.cover ? null : <span>{a.category.slice(0, 1)}</span>}</div>
+          <div className="mp-art-t">
+            <h3>{a.title}</h3>
+            <p>{a.category} · {a.readMinutes || 1} min read · by {a.author.name}</p>
+            <p className="mp-art-s">♥ {a.likes} · 💬 {a.comments}{a.publishedAt ? ' · ' + timeAgo(a.publishedAt) : ''}</p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+// Feed posts that tag this match: GET /api/posts?matchId=
+function MatchPosts({ m, active }) {
+  const { meReady, me, byId } = useData();
+  const [posts, setPosts] = useState(null), [error, setError] = useState(''), [open, setOpen] = useState(() => new Set());
   const who = me?.handle || '';
-
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch('/api/reviews?matchId=' + m.id, { cache: 'no-store' });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(j.error || 'HTTP ' + res.status);
-      setList(j.reviews); setError('');
-    } catch (e) { setError(e.message); setList(l => l || []); }
-  }, [m.id]);
-  useEffect(() => { if (meReady) load(); }, [load, meReady, who]);
-
-  const submit = async e => {
-    e.preventDefault();
-    if (!me) { openAuth('signin'); return; }
-    setBusy(true); setFe({}); setMsg('');
-    try {
-      const { review } = await sendJSON('/api/reviews', 'POST', { matchId: m.id, ...f, rating: +f.rating });
-      setList(l => [review, ...(l || [])]); setF({ title: '', body: '', rating: 8 });
-    } catch (x) { setFe(x.fields || {}); setMsg(x.fields ? '' : x.message); }
-    finally { setBusy(false); }
-  };
-  const remove = async r => {
-    try { await sendJSON('/api/reviews', 'DELETE', { id: r.id }); setList(l => l.filter(x => x.id !== r.id)); } catch (x) { setMsg(x.message); }
-  };
-
-  const hasMine = list?.some(r => r.mine);
+  const load = useCallback(() => fetch('/api/posts?tab=latest&limit=50&matchId=' + m.id, { cache: 'no-store' })
+    .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status); setPosts(j.posts); setError(''); })
+    .catch(e => { setError(e.message); setPosts(p => p || []); }), [m.id]);
+  useEffect(() => { if (active && meReady) load(); }, [active, meReady, who, load]);
+  const toggle = id => setOpen(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const edit = async (p, body) => { const { post } = await sendJSON('/api/posts/' + p.id, 'PUT', { body }); setPosts(l => l.map(x => x.id === p.id ? post : x)); };
+  const remove = async p => { await sendJSON('/api/posts/' + p.id, 'DELETE', {}); setPosts(l => l.filter(x => x.id !== p.id)); };
   return (
     <>
-      {!hasMine && (
-        <form className="rv-form" onSubmit={submit} noValidate>
-          <input value={f.title} onChange={e => setF(x => ({ ...x, title: e.target.value }))} placeholder={me ? 'Review title' : 'Sign in to write a review'} maxLength={200} aria-label="Review title" aria-invalid={!!fe.title} />
-          <textarea value={f.body} onChange={e => setF(x => ({ ...x, body: e.target.value }))} placeholder="What did you think? (optional)" rows={3} maxLength={5000} aria-label="Review text" />
-          <div className="rv-row">
-            <label>Rating <select value={f.rating} onChange={e => setF(x => ({ ...x, rating: e.target.value }))}>{Array.from({ length: 10 }, (_, k) => 10 - k).map(n => <option key={n} value={n}>{n}/10</option>)}</select></label>
-            <button type="submit" disabled={busy}>Post review</button>
-          </div>
-          {(fe.title || fe.body || fe.rating || msg) && <p className="st-err c-err" role="alert">{fe.title || fe.body || fe.rating || msg}</p>}
-        </form>
-      )}
-      {error && <p className="st-err c-err" role="alert">Could not load reviews: {error}</p>}
-      {list && !list.length && !error && <p className="empty">No reviews yet. Be the first to review this match.</p>}
-      <div className="reviews">
-        {list?.map((r, i) => {
-          const col = r.rating >= 9 ? '#6ee7a0' : r.rating === 8 ? '#ffd84a' : '#ff9f6b';
-          return (
-            <article key={r.id} className="review" style={{ '--stripe': col, '--a': i % 2 ? a.c : h.c, '--b': i % 2 ? h.c : a.c }}><i />
-              <div className="r-body">
-                <h3>{r.title}</h3>
-                <div className="r-by"><Avatar name={r.user.name} src={r.user.avatar} className="r-avatar" size={20} /><Link href={profileHref(r.user.handle)}>{r.user.name}</Link><b>{r.rating}/10</b></div>
-                {r.body && <p className="r-text">{r.body}</p>}
-                <div className="r-foot"><time>{timeAgo(r.at)}</time><LikeButton type="review" id={r.id} count={r.likes} liked={r.liked} />
-                  {r.mine && <button className="c-act" onClick={() => remove(r)}>Delete</button>}</div>
-              </div>
-              <div className="r-thumb" />
-            </article>
-          );
-        })}
-      </div>
+      <PostComposer defaultTag={m.id} onPosted={post => setPosts(p => post.matchId === m.id ? [post, ...(p || [])] : p)} />
+      {error && <p className="st-err c-err" role="alert">Could not load posts: {error}</p>}
+      {posts === null ? <p className="empty">Loading…</p> : posts.length ? posts.map(p => (
+        <PostCard key={p.id} p={p} m={byId(p.matchId)} isOpen={open.has(p.id)} onToggle={() => toggle(p.id)} onEdit={edit} onDelete={remove}
+          onReplies={n => setPosts(l => l.map(x => x.id === p.id ? { ...x, replies: n } : x))} />
+      )) : <p className="empty">No posts about this match yet.</p>}
     </>
   );
 }

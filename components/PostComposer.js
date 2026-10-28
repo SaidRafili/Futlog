@@ -15,9 +15,9 @@ const I = {
 
 // Twitter-style post box for the feed: avatar, auto-growing text, up to 4 pictures (pick, drag in or paste), emoji, optional match tag,
 // a character ring and a Post button. onPosted(post) gets the saved post (text and/or pictures are saved by POST /api/posts).
-export default function PostComposer({ onPosted }) {
+export default function PostComposer({ onPosted, defaultTag = 0 }) {
   const { me, matches, label, openAuth, byId } = useData();
-  const [text, setText] = useState(''), [pics, setPics] = useState([]), [tag, setTag] = useState(0);
+  const [text, setText] = useState(''), [pics, setPics] = useState([]), [tag, setTag] = useState(defaultTag);
   const [tagOpen, setTagOpen] = useState(false), [emojiOpen, setEmojiOpen] = useState(false), [altFor, setAltFor] = useState(-1);
   const [busy, setBusy] = useState(false), [working, setWorking] = useState(0), [err, setErr] = useState(''), [drag, setDrag] = useState(false);
   const ta = useRef(null), file = useRef(null), emojiBox = useRef(null), seq = useRef(0);
@@ -71,7 +71,7 @@ export default function PostComposer({ onPosted }) {
         body: text.trim(), matchId: tag || undefined,
         images: pics.map(p => ({ data: p.data, w: p.w, h: p.h, alt: p.alt.trim() || undefined })),
       });
-      setText(''); setPics([]); setTag(0); setTagOpen(false); setAltFor(-1);
+      setText(''); setPics([]); setTag(defaultTag); setTagOpen(false); setAltFor(-1);
       onPosted?.(post);
     } catch (x) { setErr(x.message); } finally { setBusy(false); }
   };

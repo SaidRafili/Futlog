@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // GET /api/articles?sort=top|new&limit=20&author=handle   published articles
+//     &matchId=123 -> published articles about that match
 //     &mine=1   -> the signed-in user's own articles, drafts included
 //     &saved=1  -> the articles the signed-in user saved
 export async function GET(req) {
@@ -20,6 +21,9 @@ export async function GET(req) {
       where = sp.get('saved') === '1'
         ? `a.status = 'published' AND EXISTS (SELECT 1 FROM article_saves s WHERE s.article_id = a.article_id AND s.user_id = $1::bigint)`
         : `a.author_id = $1::bigint`;
+    } else if (sp.get('matchId')) {
+      const mid = Number(sp.get('matchId')); if (!Number.isSafeInteger(mid) || mid <= 0 || mid > 2147483647) return json({ articles: [] });
+      args.push(mid); where += ` AND EXISTS (SELECT 1 FROM article_matches am WHERE am.article_id = a.article_id AND am.match_id = $2)`;
     } else if (sp.get('author')) {
       const h = cleanHandle(sp.get('author')); if (!h) return json({ articles: [] });
       args.push(h); where += ` AND u.handle = $2`;
