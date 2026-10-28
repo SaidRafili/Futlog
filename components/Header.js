@@ -23,7 +23,7 @@ export default function Header() {
     <header className="topbar">
       <Link className="logo" href="/">Futlooooooooooog</Link>
       <Suspense fallback={<div className="search" />}><SearchBox /></Suspense>
-      <nav className="nav"><Link href="/#matches">Matches</Link><Link href="/feed">Feed</Link><Link href="/write">Write</Link></nav>
+      <nav className="nav"><Link href="/search">Matches</Link><Link href="/feed">Feed</Link><Link href="/write">Write</Link></nav>
       {!meReady ? <span className="avatar-btn ph" aria-hidden="true" /> : me ? (
         <div className="acct" ref={box}>
           <button className="avatar-btn" aria-label="Account menu" aria-haspopup="menu" aria-expanded={menu} title={me.name} onClick={() => setMenu(m => !m)}>
