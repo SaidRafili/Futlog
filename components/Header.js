@@ -23,7 +23,7 @@ export default function Header() {
     <header className="topbar">
       <Link className="logo" href="/">Futlooooooooooog</Link>
       <Suspense fallback={<div className="search" />}><SearchBox /></Suspense>
-      <nav className="nav"><Link href="/matches">Matches</Link><Link href="/feed">Feed</Link><Link className="nav-write" href="/write">Write</Link></nav>
+      <nav className="nav"><Link href="/matches">Matches</Link><Link href="/feed">Feed</Link><Link className="nav-write" href="/write"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>Write</Link></nav>
       {!meReady ? <span className="avatar-btn ph" aria-hidden="true" /> : me ? (
         <div className="acct" ref={box}>
           <button className="avatar-btn" aria-label="Account menu" aria-haspopup="menu" aria-expanded={menu} title={me.name} onClick={() => setMenu(m => !m)}>

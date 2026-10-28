@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useData } from './DataProvider';
 import CommentSection from './Comments';
 import { PostImages } from './PostMedia';
@@ -51,8 +52,11 @@ export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onR
   };
   const del = async () => { try { await onDelete(p); } catch (x) { setErr(x.message); setConfirm(false); } };
   const href = `/post/${p.id}`;
+  const router = useRouter();
+  const go = e => { if (compact && !e.defaultPrevented && !e.target.closest('a,button,input,textarea,form')) router.push(href); };
+  const pic = compact && p.images?.[0];
   return (
-    <article className={compact ? 'post compact' : 'post'} style={{ '--hc': 'var(--accent-deep)' }}>
+    <article className={compact ? (pic ? 'post compact has-img' : 'post compact') : 'post'} style={{ '--hc': 'var(--accent-deep)' }} onClick={compact ? go : undefined}>
       <Link href={profileHref(p.user.handle)} style={{ display: 'contents' }}><Avatar name={p.user.name} src={p.user.avatar} className="p-av" /></Link>
       <div className="p-main">
         <div className="p-top"><Link href={profileHref(p.user.handle)}>{p.user.name}</Link><small>@{p.user.handle}</small><Link className="p-time" href={href}><time dateTime={new Date(p.at).toISOString()}>{timeAgo(p.at)}{p.editedAt ? ' · edited' : ''}</time></Link></div>
@@ -63,7 +67,7 @@ export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onR
           </form>
         ) : p.body ? <p className="p-text"><PostText text={p.body} mark={mark} /></p> : null}
         {err && <p className="st-err" role="alert">{err}</p>}
-        {compact ? null : <PostImages images={p.images} />}
+        {compact ? (pic ? <div className="p-crop"><img src={pic.url} alt={pic.alt || ''} loading="lazy" decoding="async" />{p.images.length > 1 ? <span>+{p.images.length - 1}</span> : null}</div> : null) : <PostImages images={p.images} />}
         {m ? <FeedMatch m={m} /> : null}
         <div className="p-acts">
           <LikeButton type="post" id={p.id} count={p.likes} liked={p.liked}>
