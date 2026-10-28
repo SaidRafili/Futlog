@@ -80,6 +80,8 @@ button{font:inherit;color:inherit}
 .like.on svg{fill:var(--accent)}
 
 /* updates */
+.home-posts{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--gap)}
+.home-posts .post{margin-bottom:0}
 .updates{list-style:none;background:var(--panel);padding:6px 18px}
 .updates li{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-top:1px solid #15142b}
 .updates li:first-child{border-top:0}
@@ -704,3 +706,5 @@ mark{background:rgba(167,139,250,.28);color:#fff;border-radius:3px;padding:0 1px
   .sr-person{align-items:flex-start;flex-direction:column}
   .sr-tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.sr-tabs button{flex:none}
 }
+
+@media(max-width:800px){.home-posts{grid-template-columns:1fr}}
