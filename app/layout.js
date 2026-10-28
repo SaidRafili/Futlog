@@ -3,6 +3,7 @@ import DataProvider from '@/components/DataProvider';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AuthModal from '@/components/AuthModal';
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata = {
   title: 'Futlog',
