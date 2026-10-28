@@ -45,7 +45,7 @@ export default function HomeView() {
   // everything below comes from PostgreSQL; re-read after sign-in so the "liked" hearts are right
   useEffect(() => {
     if (!d.meReady) return;
-    getJSON('/api/posts?tab=latest&limit=4').then(j => setPosts(j?.posts || []));
+    getJSON('/api/posts?tab=latest&limit=6').then(j => setPosts(j?.posts || []));
     getJSON('/api/articles?sort=top&limit=4').then(j => setArts(j?.articles || []));
     getJSON('/api/comments?type=match&top=1&limit=3').then(j => setComments(j?.comments || []));
   }, [d.meReady, who]);
@@ -69,13 +69,13 @@ export default function HomeView() {
           {posts && !posts.length
             ? <p className="empty">No posts yet. <Link href="/feed" style={{ color: 'var(--accent)' }}>Share the first one.</Link></p>
             : <div className="home-posts">{ready && posts?.map(p => (
-                <PostCard key={p.id} p={p} m={p.matchId ? d.byId(p.matchId) : null} isOpen={open.has(p.id)} onToggle={() => toggle(p.id)}
+                <PostCard compact key={p.id} p={p} m={p.matchId ? d.byId(p.matchId) : null} isOpen={open.has(p.id)} onToggle={() => toggle(p.id)}
                   onReplies={n => setPosts(l => l.map(x => x.id === p.id ? { ...x, replies: n } : x))} />
               ))}</div>}
         </section>
 
         <section id="matches">
-          <div className="sec-head"><h2>Top matches this week</h2><Link href="/search?q=&type=matches">See all matches</Link></div>
+          <div className="sec-head"><h2>Top matches this week</h2><Link href="/matches">See all matches</Link></div>
           <div className="match-grid">{ready && d.matches.slice(0, 6).map(m => <MatchCard key={m.id} m={m} />)}</div>
         </section>
 

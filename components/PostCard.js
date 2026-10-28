@@ -39,7 +39,7 @@ export function FeedMatch({ m }) {
 
 // One feed post: text, pictures, tagged match, like / reply / share, and edit + delete for the author.
 // Replies are comments of type 'post'. `mark` highlights search words (search results). `onEdit` / `onDelete` are async and may throw.
-export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onReplies, mark }) {
+export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onReplies, mark, compact }) {
   const [editing, setEditing] = useState(false), [v, setV] = useState(p.body), [err, setErr] = useState(''), [confirm, setConfirm] = useState(false);
   const save = async e => {
     e.preventDefault();
@@ -52,7 +52,7 @@ export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onR
   const del = async () => { try { await onDelete(p); } catch (x) { setErr(x.message); setConfirm(false); } };
   const href = `/post/${p.id}`;
   return (
-    <article className="post" style={{ '--hc': 'var(--accent-deep)' }}>
+    <article className={compact ? 'post compact' : 'post'} style={{ '--hc': 'var(--accent-deep)' }}>
       <Link href={profileHref(p.user.handle)} style={{ display: 'contents' }}><Avatar name={p.user.name} src={p.user.avatar} className="p-av" /></Link>
       <div className="p-main">
         <div className="p-top"><Link href={profileHref(p.user.handle)}>{p.user.name}</Link><small>@{p.user.handle}</small><Link className="p-time" href={href}><time dateTime={new Date(p.at).toISOString()}>{timeAgo(p.at)}{p.editedAt ? ' · edited' : ''}</time></Link></div>
@@ -63,13 +63,15 @@ export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onR
           </form>
         ) : p.body ? <p className="p-text"><PostText text={p.body} mark={mark} /></p> : null}
         {err && <p className="st-err" role="alert">{err}</p>}
-        <PostImages images={p.images} />
+        {compact ? null : <PostImages images={p.images} />}
         {m ? <FeedMatch m={m} /> : null}
         <div className="p-acts">
           <LikeButton type="post" id={p.id} count={p.likes} liked={p.liked}>
             {({ on, n, toggle }) => <button className={on ? 'on' : ''} aria-pressed={on} onClick={toggle} aria-label={on ? 'Remove like' : 'Like'}>{ICO.heart}{n}</button>}
           </LikeButton>
-          <button className={isOpen ? 'on' : ''} onClick={onToggle} aria-expanded={isOpen} aria-label="Replies">{ICO.chat}{p.replies}</button>
+          {compact
+            ? <Link className="p-replies" href={href} aria-label="Replies">{ICO.chat}{p.replies}</Link>
+            : <button className={isOpen ? 'on' : ''} onClick={onToggle} aria-expanded={isOpen} aria-label="Replies">{ICO.chat}{p.replies}</button>}
           <ShareButton icon={ICO.link} href={href} />
           {p.mine && !editing && onEdit && <button onClick={() => setEditing(true)}>Edit</button>}
           {p.mine && onDelete && (confirm ? <><button onClick={del} style={{ color: '#ff8b94' }}>Delete?</button><button onClick={() => setConfirm(false)}>No</button></> : <button onClick={() => setConfirm(true)}>Delete</button>)}
