@@ -50,7 +50,7 @@ function ProfileLoader({ h, tab }) {
   return <ProfilePage key={h + '|' + tab} h={h} tab={tab} u={st.u} />; // filters/sort reset when the profile or tab changes
 }
 
-const LIKED_TABS = ['likedposts', 'likedcomments', 'likedarticles'];
+const LIKED_TABS = ['likedposts', 'likedcomments'];
 const LOCK = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10.5" rx="2.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></svg>;
 
 const ACT = {
@@ -135,7 +135,7 @@ function ProfilePage({ h, tab, u }) {
 
   useEffect(() => { document.title = `${u.name} (@${h}) · Futlog`; }, [u, h]);
 
-  const stats = [['matches', u.watched.length, 'Watched'], ['liked', u.liked.length, 'Liked'], ['reviews', u.reviews.length, 'Reviews']];
+  const stats = [['matches', u.watched.length, 'Watched'], ['liked', u.liked.length, 'Liked'], ['articles', u.arts.filter(a => !a.draft).length, 'Articles']];
   const likedSub = LIKED_TABS.includes(tab);
   const lockedOut = tab === 'saved' && !me;
   const filterOpts = ['matches', 'liked'].includes(tab)
@@ -188,7 +188,7 @@ function ProfilePage({ h, tab, u }) {
       <div className="pf-wrap">
         <header className="pf-head">
           <Avatar name={u.name} src={u.avatar} className="pf-av" />
-          <div className="pf-id"><h1>{u.name}</h1><div className="handle">@{u.h}</div>
+          <div className="pf-id"><div className="pf-name"><h1>{u.name}</h1>{me && <Link className="follow pf-edit" href="/settings">Edit profile</Link>}</div><div className="handle">@{u.h}</div>
             <div className="pf-follow">
               <Link href={`/profile/${u.h}?tab=followers`}><b>{u.followers.length}</b> Followers</Link>
               <Link href={`/profile/${u.h}?tab=following`}><b>{u.following.length}</b> Following</Link>
@@ -199,7 +199,7 @@ function ProfilePage({ h, tab, u }) {
               <li>Joined {u.joined}</li>
               {u.fav ? <li>Supports <Link href={`/search?q=${encodeURIComponent(u.fav.n)}`}>{u.fav.n}</Link></li> : null}
             </ul>
-            <div className="pf-btns">{me ? <><Link className="follow pf-edit" href="/settings">Edit profile</Link> <Link className="follow pf-edit" href="/write">Write article</Link></> : <FollowButton h={u.h} />}</div></div>
+            {!me && <div className="pf-btns"><FollowButton h={u.h} /></div>}</div>
           <div className="pf-stats">{stats.map(([k, n, l]) => <Link key={k} href={`/profile/${u.h}?tab=${k}`}><b>{n}</b>{l}</Link>)}</div>
         </header>
         <div className="pf-body">
@@ -207,16 +207,11 @@ function ProfilePage({ h, tab, u }) {
             <Link href={`/profile/${h}?tab=activity`} className={tab === 'activity' ? 'on' : ''}>Activity</Link>
             <Link href={`/profile/${h}?tab=matches`} className={tab === 'matches' ? 'on' : ''}>Watched</Link>
             <Link href={`/profile/${h}?tab=liked`} className={tab === 'liked' ? 'on' : ''}>Liked</Link>
-            <div className="pf-sub" role="group" aria-label="Post likes">
-              <div className="pf-sub-h">Post likes <small>posts, comments &amp; articles you liked</small></div>
-              {[['likedposts', 'Posts'], ['likedcomments', 'Comments'], ['likedarticles', 'Articles']].map(([k, l]) => (
-                <Link key={k} href={`/profile/${h}?tab=${k}`} className={k === tab ? 'on' : ''}>{l}</Link>
-              ))}
-            </div>
-            {me && <Link href={`/profile/${h}?tab=saved`} className={`pf-saved${tab === 'saved' ? ' on' : ''}`}><span>Saved</span><em>{LOCK}Only you</em></Link>}
-            <div className="pf-sep" />
-            <Link href={`/profile/${h}?tab=reviews`} className={tab === 'reviews' ? 'on' : ''}>Reviews</Link>
-            <Link href={`/profile/${h}?tab=articles`} className={tab === 'articles' ? 'on' : ''}>Written articles</Link>
+            <div className="pf-sep" role="separator" />
+            <Link href={`/profile/${h}?tab=likedposts`} className={tab === 'likedposts' ? 'on' : ''}>Posts</Link>
+            <Link href={`/profile/${h}?tab=likedcomments`} className={tab === 'likedcomments' ? 'on' : ''}>Comments</Link>
+            <Link href={`/profile/${h}?tab=articles`} className={tab === 'articles' ? 'on' : ''}>Articles</Link>
+            {me && <><div className="pf-sep" role="separator" /><Link href={`/profile/${h}?tab=saved`} className={`pf-saved${tab === 'saved' ? ' on' : ''}`}><span>Saved</span><em>{LOCK}Only you</em></Link></>}
           </nav>
           <section>
             <div className="pf-tools">

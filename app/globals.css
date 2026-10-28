@@ -744,3 +744,11 @@ mark{background:rgba(167,139,250,.28);color:#fff;border-radius:3px;padding:0 1px
 .pf-sep{height:1px;background:var(--line);margin:8px 20px}
 .pf-lc{display:grid;gap:12px}
 @media (max-width:900px){.pf-sub{display:flex;align-items:center;margin:0;border-left:0;border-radius:0}.pf-sub-h small{display:none}.pf-sep{display:none}}
+
+/* profile refinements */
+.pf-head{align-items:start}
+.pf-name{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pf-name .pf-edit{margin-top:0}
+.pf-stats{align-self:center;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(92px,1fr);text-align:center}
+.pf-stats a{padding:6px 18px}
+.pf-side .pf-sep{height:1px;background:var(--line);margin:6px 0}
