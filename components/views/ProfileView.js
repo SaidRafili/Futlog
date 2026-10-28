@@ -4,9 +4,11 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { Fragment, useEffect, useState } from 'react';
 import { useData } from '../DataProvider';
 import MatchCard from '../MatchCard';
+import PostCard from '../PostCard';
 import { Avatar, FollowButton, UserCard } from '../ui';
 import { PTABS, SORTS } from '@/lib/consts';
 import { fetchProfile, fromApi } from '@/lib/profile';
+import { timeAgo } from '@/lib/util';
 import { daysAgo, hue, tAgo, uniq } from '@/lib/util';
 
 function PCard({ href, t, meta, d, a, b }) {
@@ -48,8 +50,11 @@ function ProfileLoader({ h, tab }) {
   return <ProfilePage key={h + '|' + tab} h={h} tab={tab} u={st.u} />; // filters/sort reset when the profile or tab changes
 }
 
+const LIKED_TABS = ['likedposts', 'likedcomments', 'likedarticles'];
+const LOCK = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10.5" rx="2.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></svg>;
+
 const ACT = {
-  watched: ['Watched', 'eye'], liked: ['Liked', 'heart'], onsite: ['Was at', 'pin'], review: ['Reviewed', 'star'], comment: ['Commented', 'chat'], follow: ['Started following', 'user'], article: ['Published', 'doc'],
+  watched: ['Watched', 'eye'], liked: ['Liked', 'heart'], review: ['Reviewed', 'star'], comment: ['Commented', 'chat'], follow: ['Started following', 'user'], article: ['Published', 'doc'],
 };
 const ICON = {
   eye: <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zm10-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />,
@@ -78,6 +83,50 @@ function ActivityRow({ a, label }) {
   );
 }
 
+// What the user liked on posts / comments / articles (fetched when that sub-tab is opened).
+function LikedContent({ h, tab, name, q, s }) {
+  const { byId, label } = useData();
+  const type = { likedposts: 'post', likedcomments: 'comment', likedarticles: 'article' }[tab];
+  const [st, setSt] = useState({ phase: 'loading' }), [open, setOpen] = useState(() => new Set());
+  useEffect(() => {
+    let dead = false;
+    fetch(`/api/users/${encodeURIComponent(h)}/likes?type=${type}`, { cache: 'no-store' })
+      .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status); return j; })
+      .then(j => { if (!dead) setSt({ phase: 'ready', items: j.posts || j.comments || j.articles || [] }); })
+      .catch(e => { if (!dead) setSt({ phase: 'error', message: e.message }); });
+    return () => { dead = true; };
+  }, [h, type]);
+  if (st.phase === 'loading') return <p className="empty">Loading…</p>;
+  if (st.phase === 'error') return <p className="pf-note" role="alert">Could not load this: {st.message}</p>;
+  const text = x => (x.body || x.title || '').toLowerCase();
+  let items = st.items.filter(x => !q || text(x).includes(q.toLowerCase()));
+  if (s === 'az') items = [...items].sort((a, b) => text(a).localeCompare(text(b)));
+  else if (s === 'old') items = [...items].reverse();
+  if (!items.length) return <p className="empty">{q ? 'Nothing matches your search.' : `${name} has not liked any ${type}s yet.`}</p>;
+  if (type === 'post') return items.map(p => (
+    <PostCard key={p.id} p={p} m={p.matchId ? byId(p.matchId) : null} isOpen={open.has(p.id)}
+      onToggle={() => setOpen(o => { const n = new Set(o); n.has(p.id) ? n.delete(p.id) : n.add(p.id); return n; })} />
+  ));
+  if (type === 'comment') return <div className="pf-lc">{items.map(c => {
+    const m = c.type === 'match' ? byId(c.targetId) : null;
+    const href = c.type === 'article' ? `/article/${c.targetId}` : c.type === 'post' ? `/post/${c.targetId}` : m ? `/match/${m.id}` : null;
+    const on = c.type === 'match' ? (m ? `on ${label(m)}` : 'on a match') : c.type === 'article' ? 'on an article' : c.type === 'post' ? 'on a post' : 'on a review';
+    return (
+      <article key={c.id} className="comment">
+        <div className="c-head">
+          <Avatar name={c.user.name} src={c.user.avatar} className="c-avatar" />
+          <div><Link className="c-name" href={`/profile/${c.user.handle}`}>{c.user.name}</Link><div className="c-time">{timeAgo(c.at)}</div></div>
+        </div>
+        <p className="c-text">“{c.body}”</p>
+        <div className="c-foot">{href ? <Link className="chip" href={href}><span className="t">{on}</span></Link> : <span className="t">{on}</span>}<span className="c-time">♥ {c.likes}</span></div>
+      </article>
+    );
+  })}</div>;
+  return <div className="pf-cards">{items.map(a => (
+    <PCard key={a.id} href={`/article/${a.id}`} t={a.title} meta={`${a.category} · by ${a.author.name}`} d={Math.max(1, (Date.now() - new Date(a.publishedAt || a.updatedAt)) / 864e5)} a={`hsl(${hue(a.title)} 50% 35%)`} b={`hsl(${hue(a.title) + 60} 50% 25%)`} />
+  ))}</div>;
+}
+
 function ProfilePage({ h, tab, u }) {
   const { T, matches, label } = useData();
   const { me: session } = useData();
@@ -86,32 +135,28 @@ function ProfilePage({ h, tab, u }) {
 
   useEffect(() => { document.title = `${u.name} (@${h}) · Futlog`; }, [u, h]);
 
-  const stats = [['matches', u.watched.length, 'Matches'], ['onsite', u.onsite.length, 'On-site'], ['liked', u.liked.length, 'Liked'], ['reviews', u.reviews.length, 'Reviews']];
-  const filterOpts = ['matches', 'liked', 'onsite'].includes(tab)
+  const stats = [['matches', u.watched.length, 'Watched'], ['liked', u.liked.length, 'Liked'], ['reviews', u.reviews.length, 'Reviews']];
+  const likedSub = LIKED_TABS.includes(tab);
+  const lockedOut = tab === 'saved' && !me;
+  const filterOpts = ['matches', 'liked'].includes(tab)
     ? ['League', ...uniq(matches, 'comp')].map((c, i) => [i ? c : '', c])
     : tab === 'reviews' ? [['', 'All ratings'], ['8', '8+ rating'], ['9', '9+ rating']] : null;
 
   // ---- list ----
   let list = null;
-  if (tab === 'about') {
-    const rec = u.watched.slice(0, 3);
-    list = (
-      <div className="pf-about"><p>{u.bio || 'No bio yet.'}</p>
-        <dl><dt>Joined</dt><dd>{u.joined}</dd><dt>Location</dt><dd>{u.loc}</dd>
-          <dt>Favourite team</dt><dd>{u.fav ? <Link href={`/search?q=${encodeURIComponent(u.fav.n)}`}>{u.fav.n}</Link> : '—'}</dd>
-          <dt>Recently watched</dt><dd>{rec.length ? rec.map((m, i) => <span key={m.id}>{i > 0 && <br />}<Link href={`/match/${m.id}`}>{label(m)}</Link></span>) : '—'}</dd></dl>
-        <div className="pf-chips">{PTABS.filter(([k]) => !['about', 'onsite', 'activity'].includes(k) && (k !== 'saved' || me)).map(([k, l]) => <Link key={k} href={`/profile/${h}?tab=${k}`}>{l}</Link>)}</div>
-      </div>
-    );
+  if (likedSub) {
+    list = <LikedContent key={tab} h={h} tab={tab} name={u.name} q={q} s={s} />;
+  } else if (lockedOut) {
+    list = <p className="empty">Saved articles are private.</p>;
   } else {
     let items = [], mode = 'cards';
     const daysOf = (key, m) => u.days[key][m.id] ?? 1;
     if (tab === 'activity') {
       mode = 'activity';
-      items = u.activity.map((a, i) => ({ key: i, d: a.min / 1440, x: `${ACT[a.type]?.[0] || ''} ${a.match ? label(a.match) : a.name || a.title || ''}`, node: <ActivityRow a={a} label={label} /> }));
-    } else if (['matches', 'liked', 'onsite'].includes(tab)) {
+      items = u.activity.filter(a => a.type !== 'onsite').map((a, i) => ({ key: i, d: a.min / 1440, x: `${ACT[a.type]?.[0] || ''} ${a.match ? label(a.match) : a.name || a.title || ''}`, node: <ActivityRow a={a} label={label} /> }));
+    } else if (['matches', 'liked'].includes(tab)) {
       mode = 'grid';
-      items = ({ matches: u.watched, liked: u.liked, onsite: u.onsite })[tab].map(m => ({ key: m.id, d: daysOf(tab, m), x: label(m), f: m.comp, node: <MatchCard m={m} /> }));
+      items = ({ matches: u.watched, liked: u.liked })[tab].map(m => ({ key: m.id, d: daysOf(tab, m), x: label(m), f: m.comp, node: <MatchCard m={m} /> }));
     } else if (tab === 'reviews') {
       items = u.reviews.map((v, i) => ({ key: i, d: v.d, x: v.t + ' ' + label(v.m), f: v.r,
         node: <PCard href={`/match/${v.m.id}`} t={v.t} meta={`${T[v.m.h].n} ${v.m.hs}–${v.m.as} ${T[v.m.a].n} · ${v.r}/10`} d={v.d} a={T[v.m.h].c} b={T[v.m.a].c} /> }));
@@ -144,12 +189,34 @@ function ProfilePage({ h, tab, u }) {
         <header className="pf-head">
           <Avatar name={u.name} src={u.avatar} className="pf-av" />
           <div className="pf-id"><h1>{u.name}</h1><div className="handle">@{u.h}</div>
-            {me ? <><Link className="follow pf-edit" href="/settings">Edit profile</Link> <Link className="follow pf-edit" href="/write">Write article</Link></> : <FollowButton h={u.h} />}</div>
+            <div className="pf-follow">
+              <Link href={`/profile/${u.h}?tab=followers`}><b>{u.followers.length}</b> Followers</Link>
+              <Link href={`/profile/${u.h}?tab=following`}><b>{u.following.length}</b> Following</Link>
+            </div>
+            {u.bio ? <p className="pf-bio">{u.bio}</p> : null}
+            <ul className="pf-meta">
+              {u.loc && u.loc !== '—' ? <li><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">{ICON.pin}</svg>{u.loc}</li> : null}
+              <li>Joined {u.joined}</li>
+              {u.fav ? <li>Supports <Link href={`/search?q=${encodeURIComponent(u.fav.n)}`}>{u.fav.n}</Link></li> : null}
+            </ul>
+            <div className="pf-btns">{me ? <><Link className="follow pf-edit" href="/settings">Edit profile</Link> <Link className="follow pf-edit" href="/write">Write article</Link></> : <FollowButton h={u.h} />}</div></div>
           <div className="pf-stats">{stats.map(([k, n, l]) => <Link key={k} href={`/profile/${u.h}?tab=${k}`}><b>{n}</b>{l}</Link>)}</div>
         </header>
         <div className="pf-body">
           <nav className="pf-side" aria-label="Profile sections">
-            {PTABS.filter(([k]) => k !== 'saved' || me).map(([k, l]) => <Link key={k} href={`/profile/${h}?tab=${k}`} className={k === tab ? 'on' : ''}>{l}</Link>)}
+            <Link href={`/profile/${h}?tab=activity`} className={tab === 'activity' ? 'on' : ''}>Activity</Link>
+            <Link href={`/profile/${h}?tab=matches`} className={tab === 'matches' ? 'on' : ''}>Watched</Link>
+            <Link href={`/profile/${h}?tab=liked`} className={tab === 'liked' ? 'on' : ''}>Liked</Link>
+            <div className="pf-sub" role="group" aria-label="Post likes">
+              <div className="pf-sub-h">Post likes <small>posts, comments &amp; articles you liked</small></div>
+              {[['likedposts', 'Posts'], ['likedcomments', 'Comments'], ['likedarticles', 'Articles']].map(([k, l]) => (
+                <Link key={k} href={`/profile/${h}?tab=${k}`} className={k === tab ? 'on' : ''}>{l}</Link>
+              ))}
+            </div>
+            {me && <Link href={`/profile/${h}?tab=saved`} className={`pf-saved${tab === 'saved' ? ' on' : ''}`}><span>Saved</span><em>{LOCK}Only you</em></Link>}
+            <div className="pf-sep" />
+            <Link href={`/profile/${h}?tab=reviews`} className={tab === 'reviews' ? 'on' : ''}>Reviews</Link>
+            <Link href={`/profile/${h}?tab=articles`} className={tab === 'articles' ? 'on' : ''}>Written articles</Link>
           </nav>
           <section>
             <div className="pf-tools">
