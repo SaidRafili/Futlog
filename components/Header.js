@@ -1,30 +1,9 @@
 'use client';
 import Link from 'next/link';
 import { Suspense, useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useData } from './DataProvider';
-
-function SearchBox() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const sp = useSearchParams();
-  const initial = pathname === '/search' ? (sp.get('q') || '') : '';
-  const [v, setV] = useState(initial);
-  useEffect(() => setV(initial), [initial]);
-
-  const submit = e => {
-    e.preventDefault();
-    const q = v.trim();
-    if (q) router.push('/search?' + new URLSearchParams({ q }));
-  };
-
-  return (
-    <form className="search" role="search" onSubmit={submit}>
-      <input type="search" name="q" value={v} onChange={e => setV(e.target.value)} placeholder="Search teams, competitions, seasons" aria-label="Search matches" />
-      <button type="submit" aria-label="Search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg></button>
-    </form>
-  );
-}
+import SearchBox from './SearchBox';
 
 export default function Header() {
   const { me, meReady, openAuth, signOut } = useData();

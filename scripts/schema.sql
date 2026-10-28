@@ -296,3 +296,38 @@ CREATE OR REPLACE VIEW user_activity AS
     SELECT user_id, 'comment', CASE WHEN target_type = 'match' THEN target_id::int END, NULL, comment_id,
            left(body, 140), NULL, created_at
       FROM comments;
+
+
+-- =====================================================================
+-- FEED v2: posts with pictures (Twitter-style)   (safe to re-run)
+-- =====================================================================
+-- A post may now be pictures only, so the "body has at least one character" rule moves into the API (text OR at least one picture).
+ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_body_check;
+
+-- Up to 4 pictures per post. The browser resizes them (max 1600 px, JPEG) and the bytes are stored here;
+-- GET /api/post-images/:id serves them with a long cache header (a picture never changes once saved).
+CREATE TABLE IF NOT EXISTS post_images (
+    image_id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    post_id    BIGINT NOT NULL REFERENCES posts(post_id) ON DELETE CASCADE,
+    position   SMALLINT NOT NULL DEFAULT 0 CHECK (position BETWEEN 0 AND 3),
+    mime       VARCHAR(20) NOT NULL CHECK (mime IN ('image/jpeg', 'image/png', 'image/webp')),
+    width      INT CHECK (width  IS NULL OR width  BETWEEN 1 AND 8192),
+    height     INT CHECK (height IS NULL OR height BETWEEN 1 AND 8192),
+    alt        VARCHAR(200),                              -- picture description for screen readers
+    data       BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (post_id, position)
+);
+
+
+-- =====================================================================
+-- SEARCH: typo-tolerant matching for people, articles and posts   (safe to re-run)
+-- =====================================================================
+-- pg_trgm gives "did you mean" style fuzzy matching ("bellingam" finds "Bellingham"). It ships with Postgres and Neon, but if your host
+-- does not allow it the search still works (exact / prefix / word-start / contains matching), it just is not typo tolerant.
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS pg_trgm;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'pg_trgm is not available (%): search will not tolerate typos', SQLERRM;
+END $$;

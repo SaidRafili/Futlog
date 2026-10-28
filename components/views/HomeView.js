@@ -78,7 +78,7 @@ export default function HomeView() {
         </section>
 
         <section id="matches">
-          <div className="sec-head"><h2>Top matches this week</h2><Link href="/search?q=">See all matches</Link></div>
+          <div className="sec-head"><h2>Top matches this week</h2><Link href="/search?q=&type=matches">See all matches</Link></div>
           <div className="match-grid">{ready && d.matches.slice(0, 6).map(m => <MatchCard key={m.id} m={m} />)}</div>
         </section>
 

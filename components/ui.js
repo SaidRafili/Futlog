@@ -54,14 +54,14 @@ export function FollowButton({ h }) {
   return <button className={`follow${on ? ' on' : ''}`} style={{ marginTop: 6 }} onClick={() => toggleFollow(h)}>{on ? 'Following' : 'Follow'}</button>;
 }
 
-export function ShareButton({ icon, className }) {
+export function ShareButton({ icon, className, href }) {
   const [done, setDone] = useState(false);
   useEffect(() => {
     if (!done) return;
     const t = setTimeout(() => setDone(false), 1600);
     return () => clearTimeout(t);
   }, [done]);
-  const copy = () => { navigator.clipboard?.writeText(window.location.href).catch(() => {}); setDone(true); };
+  const copy = () => { navigator.clipboard?.writeText(href ? new URL(href, window.location.origin).href : window.location.href).catch(() => {}); setDone(true); };
   return <button className={className} onClick={copy}>{icon}<span>{done ? 'Link copied' : 'Share'}</span></button>;
 }
 

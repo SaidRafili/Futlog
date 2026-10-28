@@ -72,3 +72,35 @@ API (all writes need a signed-in user and a same-site request; you can only chan
 - `GET /api/users?suggest=1` – "Who to follow"
 
 Pages: `/write` (new article), `/write/[id]` (edit), `/article/[id]`, `/feed`, and the **Saved** tab on your profile.
+
+
+## Feed posts with pictures (Twitter-style)
+Run `npm run db:schema` again (safe to re-run). It adds the `post_images` table and lets a post be pictures only.
+
+- **Post box** (`components/PostComposer.js`): avatar, auto-growing text, up to **4 pictures** (pick, drag onto the box, or paste), picture descriptions (ALT),
+  emoji, an optional tagged match, a 280-character ring, `Ctrl/Cmd + Enter` to post.
+- Pictures are scaled down **in the browser** (longest side 1600 px, JPEG, under ~420 KB) and stored as bytes in `post_images`.
+  `GET /api/post-images/:id` serves them with a one-year cache header (a picture never changes after it is saved). Deleting a post deletes its pictures.
+- **Post text**: `#hashtags` link to a search for posts, `@handle` links to the profile, `https://` links are clickable (opened with `rel="noopener nofollow ugc"`).
+- **Pictures in the feed**: 1 / 2 / 3 / 4 picture layouts like Twitter, click for a full-size viewer (arrow keys, Esc).
+- `/post/[id]` is the page of a single post (its timestamp and the **Share** button link there; replies are open).
+- The feed side column also shows **Trending hashtags**.
+
+API: `POST /api/posts` body `{ body, matchId?, images?: [{ data: 'data:image/jpeg;base64,…', w, h, alt }] }` (text and/or pictures),
+`GET /api/posts/:id`, `GET /api/posts?handle=alice`, `PUT /api/posts/:id` (edit text), `DELETE /api/posts/:id`.
+The server checks the type, size (450 KB each) and file signature of every picture. Not included: animated GIFs (they become a still picture), video, editing pictures after posting.
+
+## Search: matches, people, articles and posts
+- **Header search box** has a live drop-down (people, articles, teams as you type; your recent searches when it is empty). Arrow keys + Enter work.
+- **`/search?q=…&type=all|matches|articles|people|posts`**: tabs with result counts, highlighted words, "Show more", and a helpful empty state.
+  A `#hashtag` search shows posts first. `real madrid vs bayern` still finds that fixture, whichever team is at home.
+- **How results are ranked** (`lib/search.js`): every word you type must match (AND). A word scores by how it matches a field -
+  exact > starts with > starts a word > appears inside > close to it (typo) - times how important the field is (a person's @handle / name,
+  an article's title and author count more than a bio or the article text). Capitals and accents never matter ("muller" finds "Müller").
+  Ties go to authors, popular (liked / followed) and newer results.
+- **Typo tolerance** ("arsnal" -> Arsenal, "bellingam" -> Bellingham) uses Postgres' `pg_trgm`, enabled by `npm run db:schema`.
+  If your host does not allow that extension, search still works, just without typo tolerance (the schema script prints a notice). Typos are only tolerated in
+  names, handles, titles and post text, not in the long article text.
+- `GET /api/search?q=&types=people,articles,posts&counts=posts&limit=&offset=` and `GET /api/search/suggest?q=`. Matches and teams are searched in the browser
+  (`lib/matchsearch.js`) because the fixtures are already loaded there. Searching scans the tables (fast up to tens of thousands of rows); if you outgrow that,
+  add trigram indexes on `lower(title)`, `lower(body)` and `lower(display_name)`.
