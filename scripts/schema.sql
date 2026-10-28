@@ -345,6 +345,10 @@ CREATE TABLE IF NOT EXISTS leagues (
     slug       VARCHAR(100) NOT NULL
 );
 CREATE TABLE IF NOT EXISTS venues (
-    venueid    INT PRIMARY KEY,
-    fullname   VARCHAR(150) NOT NULL
+    venueid      INT PRIMARY KEY,
+    fullname     VARCHAR(150) NOT NULL,
+    photourl     VARCHAR(500) NOT NULL DEFAULT '',   -- stadium photo shown on the match page and match posters
+    photocredit  VARCHAR(255) NOT NULL DEFAULT ''    -- "Author / Wikimedia Commons, CC BY-SA 4.0"
 );
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS photourl    VARCHAR(500) NOT NULL DEFAULT '';
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS photocredit VARCHAR(255) NOT NULL DEFAULT '';

@@ -8,6 +8,7 @@
     "start": "next start",
     "import:fixtures": "node --env-file=.env.local scripts/import-fixtures.mjs",
     "db:schema": "node --env-file=.env.local scripts/apply-sql.mjs scripts/schema.sql",
+    "venues:photos": "node --env-file=.env.local scripts/fetch-venue-photos.mjs",
     "user:claim": "node --env-file=.env.local scripts/claim-user.mjs"
   },
   "dependencies": {

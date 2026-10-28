@@ -15,16 +15,27 @@ const LEAGUES_SQL = `
   FROM leagues`;
 
 const VENUES_SQL = `
-  SELECT venueid  AS "venueId",
-         fullname AS "fullName"
+  SELECT venueid      AS "venueId",
+         fullname     AS "fullName",
+         photourl     AS "photoURL",
+         photocredit  AS "photoCredit"
   FROM venues`;
+
+// older `venues` table without the photo columns: names only
+const VENUES_NO_PHOTO_SQL = `
+  SELECT venueid AS "venueId", fullname AS "fullName" FROM venues`;
 
 async function rowsOf(sql, what) {
   try { return (await query(sql)).rows; }
   catch (err) { console.warn(`GET /api/lookups: could not read ${what}:`, err.message); return []; }
 }
 
+async function venueRows() {
+  try { return (await query(VENUES_SQL)).rows; }
+  catch { return rowsOf(VENUES_NO_PHOTO_SQL, 'venues'); }
+}
+
 export async function GET() {
-  const [leagues, venues] = await Promise.all([rowsOf(LEAGUES_SQL, 'leagues'), rowsOf(VENUES_SQL, 'venues')]);
+  const [leagues, venues] = await Promise.all([rowsOf(LEAGUES_SQL, 'leagues'), venueRows()]);
   return Response.json({ leagues, venues });
 }

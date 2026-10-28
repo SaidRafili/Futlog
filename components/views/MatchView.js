@@ -89,7 +89,9 @@ function MatchPage({ m }) {
             </div>
           </div>
         </div>
-        <div className="mp-photo" role="img" aria-label="Match photo" style={{ '--a': h.c, '--b': a.c, backgroundImage: m.img ? `url('${m.img}')` : undefined }} />
+        <div className="mp-photo" role="img" aria-label="Match photo" style={{ '--a': h.c, '--b': a.c, backgroundImage: m.img ? `linear-gradient(to top,rgba(0,0,0,.4),transparent 50%),url('${m.img}')` : undefined }}>
+          {m.img && m.imgCredit ? <small className="mp-credit">Photo: {m.imgCredit}</small> : null}
+        </div>
       </section>
 
       <section className="mp-body">
