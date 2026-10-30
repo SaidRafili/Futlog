@@ -42,7 +42,9 @@ export async function GET(req, { params }) {
               WHERE a.user_id = $1 ORDER BY a.created_at DESC LIMIT 60`, [id]),
       query(`SELECT (SELECT count(*)::int FROM follows WHERE followee_id = $1) AS followers,
                     (SELECT count(*)::int FROM follows WHERE follower_id = $1) AS following,
-                    (SELECT count(*)::int FROM comments WHERE user_id = $1) AS comments`, [id]),
+                    (SELECT count(*)::int FROM comments WHERE user_id = $1) AS comments,
+                    (SELECT count(*)::int FROM posts WHERE user_id = $1) AS posts,
+                    (SELECT count(*)::int FROM likes WHERE user_id = $1) AS likes`, [id]),
       // bookmarks are private: only the owner gets them
       isOwner
         ? query(`SELECT a.article_id AS id, a.title, a.category, a.read_minutes, s.created_at AS at, u.handle AS author_handle, u.display_name AS author_name
