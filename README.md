@@ -42,7 +42,12 @@ Run `npm run db:schema` once (re-runnable; it upgrades an existing database). It
   and every write checks the session and the request origin. Re-run `npm run db:schema` to add the two new tables.
 - A user row created without a password (e.g. inserted by hand) can be claimed with
   `npm run user:claim -- handle you@example.com 'your password'`.
-- Not included yet: email verification and "forgot password".
+- **Email verification (6-digit code):** both sign-up and sign-in are two steps. Step 1 (`POST /api/auth/signup | login`) checks the form / password and
+  e-mails a 6-digit code from `futlogcom@gmail.com` (`lib/mail.js`, Gmail SMTP via nodemailer). Step 2 (`POST /api/auth/verify`) checks the code and only
+  then creates the account / session; `POST /api/auth/resend` sends a new code. Codes last 10 minutes, allow 5 wrong tries, work once and are stored hashed
+  (`auth_codes` table, `lib/otp.js`). E-mails per address / IP are rate-limited. Set `GMAIL_USER` and `GMAIL_APP_PASSWORD` (a Google *App password*) in
+  `.env.local` and on Vercel, then run `npm install` and `npm run db:schema`. Without `GMAIL_APP_PASSWORD`, development prints the code in the terminal.
+- Not included yet: "forgot password".
 - Favicon: `app/favicon.ico`, `app/icon.png`, `app/apple-icon.png`, `app/manifest.js` (+ `public/icon-*.png`).
 
 ## Articles, comments, likes, saves, feed, reviews (PostgreSQL)

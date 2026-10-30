@@ -540,6 +540,9 @@ dialog.auth::backdrop{background:rgba(3,3,8,.72);backdrop-filter:blur(3px)}
 .au-form{min-height:0}.au-form:empty{display:none}
 .au-go{width:100%;height:40px;border-radius:20px;font-size:14px}
 .au-switch{text-align:center;color:var(--muted);font-size:13px}
+.au-note{color:var(--accent);font-size:13px}
+.au-field input.au-code{height:48px;font:600 26px 'Courier New',monospace;letter-spacing:.5em;text-align:center;padding:0 0 0 .5em}
+.au-switch button:disabled{opacity:.55;cursor:default;text-decoration:none}
 .au-switch button{background:none;border:0;color:var(--accent);cursor:pointer;text-decoration:underline;font:inherit}
 @media (max-width:480px){.au-card{padding:22px 18px 18px}.au-field input{font-size:16px}}
 
