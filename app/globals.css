@@ -717,12 +717,12 @@ mark{background:rgba(167,139,250,.28);color:#fff;border-radius:3px;padding:0 1px
 @media(max-width:900px){.home-posts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.home-posts{grid-template-columns:1fr}}
 
-.nav a.nav-write{display:inline-flex;align-items:center;gap:7px;line-height:1;font-style:normal;text-decoration:none;font-weight:700;background:var(--accent);color:#1a1240;padding:6px 18px;border-radius:16px;transition:transform .15s ease,background .15s ease,box-shadow .15s ease}
-.nav a.nav-write:hover{background:#fff;color:#1a1240;transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.35)}
-.nav a.nav-write:active{transform:none}
+a.nav-write{display:inline-flex;align-items:center;gap:7px;line-height:1;font-style:normal;text-decoration:none;font-weight:700;background:var(--accent);color:#1a1240;padding:6px 18px;border-radius:16px;transition:transform .15s ease,background .15s ease,box-shadow .15s ease}
+a.nav-write:hover{background:#fff;color:#1a1240;transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.35)}
+a.nav-write:active{transform:none}
 .ml-more{display:flex;justify-content:center;padding-top:20px}
 
-.nav a.nav-write svg{flex:none}
+a.nav-write svg{flex:none}
 .post.compact{cursor:pointer}
 .p-crop{position:relative;height:62px;margin-top:8px;border-radius:6px;overflow:hidden;background:#0e0e22;flex:none}
 .p-crop img{width:100%;height:100%;object-fit:cover;display:block}
@@ -830,3 +830,118 @@ mark{background:rgba(167,139,250,.28);color:#fff;border-radius:3px;padding:0 1px
 .fd-tabs .fd-shuffle{margin-left:auto;border:1px solid var(--accent);border-radius:12px;padding:3px 12px;font-size:12px;font-style:normal;color:var(--accent);border-bottom-width:1px}
 .fd-tabs .fd-shuffle:hover{background:var(--accent-deep);color:#fff}
 .ar-more{margin-top:32px}
+
+/* =====================================================================
+   Responsive v2: header, feed and profile on phones and tablets.
+   Kept at the END of the file on purpose: base rules that appear later in this file would otherwise win over the
+   earlier @media blocks. Desktop (> 1024px) looks exactly as before.
+   ===================================================================== */
+
+/* ---------- header ---------- */
+.search{min-width:0}
+.search input{min-width:0;width:100%}
+.nav,a.nav-write,.signin-btn,.acct,.avatar-btn{flex:none}
+a.nav-write{margin-left:6px}                    /* "Write" now sits beside the nav (not inside it): same spacing as before */
+.topbar{transition:transform .22s ease}
+.topbar.away{transform:translateY(-100%)}       /* set by Header.js on phones while scrolling down */
+.topbar:focus-within{transform:none}
+@media (prefers-reduced-motion:reduce){.topbar{transition:none}}
+
+/* tablet: one row, but let the search box shrink instead of pushing "Sign in" off the screen */
+@media (max-width:1024px){
+  .topbar{gap:12px}
+  .nav{gap:16px}
+  a.nav-write{margin-left:0;padding:6px 16px}
+}
+
+/* phone: row 1 = logo + Write + account, row 2 = search + Matches/Feed (about 92px instead of 130px) */
+@media (max-width:760px){
+  html{scroll-padding-top:100px}
+  .topbar{display:flex;flex-wrap:wrap;align-items:center;gap:0 10px;padding:8px 12px 10px}
+  .topbar::before{content:"";order:4;flex:0 0 100%;height:0}      /* line break between the two rows */
+  .logo{order:1;flex:1 1 0;min-width:0;max-width:none;overflow:hidden;text-overflow:ellipsis;font-size:18px}
+  a.nav-write{order:2;padding:7px 14px}
+  .topbar>.acct,.topbar>.avatar-btn,.topbar>.signin-btn{order:3}
+  .topbar>.avatar-btn,.acct>.avatar-btn{width:32px;height:32px}
+  .signin-btn{padding:7px 16px}
+  .search{order:5;flex:1 1 0;margin-top:8px}
+  .nav{order:6;margin:8px 0 0;gap:4px;font-size:13px;margin-left:0}
+  .nav a{padding:8px 6px}
+  .sb-pop{top:96px}
+}
+@media (max-width:360px){
+  .logo{font-size:16px}
+  a.nav-write{padding:7px 11px;gap:5px}
+  .nav a{padding:8px 4px}
+}
+
+/* ---------- feed ---------- */
+.p-top{min-width:0}
+.p-top>a:first-child{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-top small{min-width:0;flex:0 100 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-top .p-time{flex:none;white-space:nowrap}
+.p-acts{flex-wrap:wrap}
+.p-match>span:last-child:not(.mini){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* tablet + phone: the feed comes first. "Hot matches" becomes a slim, sideways-scrolling filter strip above it,
+   "Who to follow" goes below the posts (before, both boxes sat above the feed and pushed the post box ~400px down) */
+@media (max-width:900px){
+  .fd-wrap{grid-template-columns:minmax(0,1fr);row-gap:14px;margin-top:8px}
+  .fd-side{display:contents}
+  .fd-box.fd-hot{order:-1;display:flex;align-items:center;gap:8px;overflow-x:auto;padding:10px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .fd-box.fd-hot::-webkit-scrollbar{display:none}
+  .fd-box.fd-hot.none{display:none}
+  .fd-box.fd-hot h2{margin:0 4px 0 0;flex:none;white-space:nowrap}
+  .fd-box.fd-hot .hm{flex:none;width:auto;gap:8px;padding:4px 12px;border:1px solid var(--line);border-radius:14px;white-space:nowrap}
+  .fd-box.fd-hot .hm.on{border-color:var(--accent);background:#15142b}
+  .fd-box.fd-who{order:2}
+}
+@media (max-width:760px){
+  .fd-head{margin-bottom:10px}
+  .fd-head h1{padding-bottom:2px}
+  .fd-tabs{width:100%;gap:14px;overflow-x:auto;scrollbar-width:none}
+  .fd-tabs::-webkit-scrollbar{display:none}
+  .fd-tabs button{flex:none;white-space:nowrap;padding:8px 2px}
+  .fd-tabs .fd-shuffle{margin-left:auto;align-self:center;padding:4px 12px}
+  .post{border-left-width:3px}
+  .p-text{font-size:15px}
+  .p-acts{gap:2px}
+  .p-acts button{padding:6px 8px}
+  .cmp-bar{gap:6px}
+  .cmp-post{padding:0 18px}
+}
+@media (max-width:420px){
+  .fd-wrap{padding:0 10px 40px}
+  .post{padding:12px 10px;gap:8px;grid-template-columns:30px minmax(0,1fr)}
+  .p-av{width:30px;height:30px}
+}
+
+/* ---------- profile ---------- */
+@media (max-width:900px){
+  .pf-body{grid-template-columns:minmax(0,1fr)}
+  /* section tabs: a clean sideways-scrolling strip (the purple corner strip of the vertical menu used to cover the active tab's label) */
+  .pf-side{padding:0;border-bottom:1px solid var(--line);scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+  .pf-side::-webkit-scrollbar{display:none}
+  .pf-side a{flex:none;scroll-snap-align:center;padding:12px 18px;font-size:15px}
+  .pf-side a.on::after{display:none}
+  .pf-side a.on{box-shadow:inset 0 -3px 0 var(--accent-deep)}
+  .pf-saved{gap:10px}
+  .pf-bio{max-width:none}
+}
+@media (max-width:600px){
+  .pf-cover{height:124px}
+  .pf-wrap{padding:0 10px 40px}
+  .pf-head{grid-template-columns:minmax(0,1fr);gap:6px 0;padding:0 14px 8px;min-height:0}
+  .pf-av{width:88px;height:88px;margin-top:-44px;font-size:34px}
+  .pf-id{min-width:0}
+  .pf-name h1{font-size:20px;overflow-wrap:anywhere}
+  .pf-stats{grid-auto-columns:minmax(0,1fr);width:100%;border-top:1px solid var(--line);padding-top:8px}
+  .pf-stats a{padding:6px 4px;font-size:14px}
+  .pf-stats b{font-size:17px}
+  .pf-body{margin-top:12px;gap:12px}
+  .pf-tools{gap:8px}
+  .pf-tools input{height:38px;border-radius:8px;padding:0 12px}
+  .pf-tools select,.pf-tools button{font-size:13px;min-height:34px}
+  .pf-act li{padding:12px}
+  .pcard h3{font-size:17px}
+}

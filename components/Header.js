@@ -8,8 +8,25 @@ import SearchBox from './SearchBox';
 export default function Header() {
   const { me, meReady, openAuth, signOut } = useData();
   const [menu, setMenu] = useState(false);
-  const box = useRef(null);
+  const box = useRef(null), bar = useRef(null);
+  const [away, setAway] = useState(false);          // phones: the bar slides away while you scroll down and returns when you scroll up
   const router = useRouter();
+
+  useEffect(() => {
+    let last = window.scrollY, busy = false;
+    const onScroll = () => {
+      if (busy) return; busy = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY, small = window.matchMedia('(max-width: 760px)').matches;
+        if (!small || y < 80 || y < last - 6) setAway(false);
+        else if (y > last + 6 && !bar.current?.contains(document.activeElement)) setAway(true);
+        last = y; busy = false;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  useEffect(() => { if (menu) setAway(false); }, [menu]);
 
   useEffect(() => {
     if (!menu) return;
@@ -20,10 +37,10 @@ export default function Header() {
   }, [menu]);
 
   return (
-    <header className="topbar">
+    <header className={`topbar${away && !menu ? ' away' : ''}`} ref={bar}>
       <Link className="logo" href="/">Futlooooooooooog</Link>
       <Suspense fallback={<div className="search" />}><SearchBox /></Suspense>
-      <nav className="nav"><Link href="/matches">Matches</Link><Link href="/feed">Feed</Link><Link className="nav-write" href="/write"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>Write</Link></nav>
+      <nav className="nav"><Link href="/matches">Matches</Link><Link href="/feed">Feed</Link></nav><Link className="nav-write" href="/write"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>Write</Link>
       {!meReady ? <span className="avatar-btn ph" aria-hidden="true" /> : me ? (
         <div className="acct" ref={box}>
           <button className="avatar-btn" aria-label="Account menu" aria-haspopup="menu" aria-expanded={menu} title={me.name} onClick={() => setMenu(m => !m)}>

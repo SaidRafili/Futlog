@@ -182,6 +182,11 @@ function ProfilePage({ h, tab, u }) {
     ? { backgroundImage: `url("${u.banner}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { '--h': u.hue ?? hue(h) };
 
+  useEffect(() => {      // phones: the section tabs scroll sideways, keep the active one in view (does not scroll the page)
+    const n = document.querySelector('.pf-side'), a = n?.querySelector('a.on');
+    if (n && a && n.scrollWidth > n.clientWidth) n.scrollLeft = a.offsetLeft - (n.clientWidth - a.offsetWidth) / 2;
+  }, [tab]);
+
   return (
     <main id="profilePage">
       <div className={`pf-cover${u.banner ? ' img' : ''}`} style={cover} />

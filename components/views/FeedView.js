@@ -84,12 +84,12 @@ function FeedPage() {
               <Link key={t} className="hm" href={`/search?${new URLSearchParams({ q: '#' + t, type: 'posts' })}`}>#{t}<span>{n}</span></Link>
             )) : <span style={{ color: 'var(--muted)' }}>Add a #hashtag to a post and it shows up here.</span>}
           </div>
-          <div className="fd-box"><h2>Hot matches</h2>
+          <div className={`fd-box fd-hot${hot.length ? '' : ' none'}`}><h2>Hot matches</h2>
             {hot.length ? hot.map(m => (
               <button key={m.id} className={`hm ${fm === m.id ? 'on' : ''}`} onClick={() => setFm(fm === m.id ? 0 : m.id)}>{label(m)}<span>{cnt[m.id]}</span></button>
             )) : <span style={{ color: 'var(--muted)' }}>Tag a match in a post and it shows up here.</span>}
           </div>
-          <div className="fd-box"><h2>Who to follow</h2>
+          <div className="fd-box fd-who"><h2>Who to follow</h2>
             {sug.filter(x => !following.has(x.handle)).length
               ? sug.filter(x => !following.has(x.handle)).map(x => <UserCard key={x.handle} u={{ h: x.handle, name: x.name, avatar: x.avatar }} />)
               : <span style={{ color: 'var(--muted)' }}>No one else to follow yet.</span>}

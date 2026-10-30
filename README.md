@@ -113,3 +113,10 @@ The server checks the type, size (450 KB each) and file signature of every pictu
 - `GET /api/comments?type=match&top=1&random=1&limit=N[&seed=S]` – random comments (home page)
 - Comments under an article / match / post default to the **Mix** order (click Mix again to reshuffle)
 - No `seed` = a different result on every request; the same `seed` gives the same result.
+
+## Responsive layout (phones and tablets)
+The last block of `app/globals.css` ("Responsive v2") handles the header, feed and profile on small screens. It is deliberately at the end of the file, because rules that appear later win over the earlier `@media` blocks.
+- **Header:** tablets keep one row (the search box shrinks instead of pushing "Sign in" off screen). Phones use two compact rows (logo + Write + account, then search + Matches/Feed) and the bar slides away while scrolling down and comes back when scrolling up (`components/Header.js`).
+- **Feed:** the feed comes first; "Hot matches" becomes a sideways-scrolling filter strip above it and "Who to follow" sits below the posts. Long names/handles are truncated instead of overflowing.
+- **Profile:** full-width header block, equal-width stat columns, and the section tabs form a sideways-scrolling strip that keeps the active tab in view.
+- Desktop (above 1024px) is unchanged.
