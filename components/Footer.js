@@ -21,7 +21,7 @@ export default function Footer() {
         </nav>
         <nav className="ft-col" aria-label="Footer info links">
           <h2>Futlog</h2>
-          <Link href="/info">About</Link><Link href="/info#faq">FAQ</Link><Link href="/info#contact">Contact</Link><Link href="/info#privacy">Privacy</Link>
+          <Link href="/info">About</Link><Link href="/info#faq">FAQ</Link><Link href="/info#contact">Contact</Link><Link href="/info#copyright">Copyright</Link><Link href="/info#privacy">Privacy</Link>
         </nav>
         <div className="ft-col">
           <h2>Follow us</h2>
@@ -30,7 +30,7 @@ export default function Footer() {
           ))}
         </div>
       </div>
-      <div className="ft-bot"><span>© 2026 Futlog. All rights reserved.</span><Link href="/info#privacy">Privacy &amp; terms</Link></div>
+      <div className="ft-bot"><span>© 2026 Futlog. Site design and code all rights reserved. Member posts © their authors.</span><Link href="/info#copyright">Copyright &amp; author rights</Link></div>
     </footer>
   );
 }
