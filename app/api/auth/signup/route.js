@@ -1,15 +1,12 @@
 import { query } from '@/lib/db';
 import { hashPassword } from '@/lib/password.mjs';
-import { EMAIL_RE, PASSWORD_MAX, PASSWORD_MIN, checkOrigin, clientIp } from '@/lib/auth';
-import { startChallenge, maskEmail } from '@/lib/otp';
-import { HANDLE_RE, dbError, fail, json, readBody } from '@/lib/users';
+import { EMAIL_RE, PASSWORD_MAX, PASSWORD_MIN, checkOrigin, createSession } from '@/lib/auth';
+import { HANDLE_RE, dbError, fail, json, liteFor, readBody } from '@/lib/users';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// POST /api/auth/signup   body { name, handle, email, password }
-// Step 1 of 2: validates the form and e-mails a 6-digit code. The account is created by POST /api/auth/verify.
-// -> { step: 'verify', challenge, email }
+// POST /api/auth/signup   body { name, handle, email, password }  -> creates the account and signs it in
 export async function POST(req) {
   const blocked = checkOrigin(req); if (blocked) return blocked;
   const b = await readBody(req);
@@ -26,15 +23,18 @@ export async function POST(req) {
   if (Object.keys(fields).length) return fail(400, 'Please fix the highlighted fields', { fields });
 
   try {
-    // Tell the person about a taken email / username now, before we send anything.
-    const { rows } = await query('SELECT handle, lower(email) AS email FROM users WHERE handle = $1 OR lower(email) = $2', [handle, email]);
-    if (rows.some(r => r.email === email)) fields.email = 'That email already has an account. Try signing in.';
-    if (rows.some(r => r.handle === handle)) fields.handle = 'That username is taken';
-    if (Object.keys(fields).length) return fail(409, 'Please fix the highlighted fields', { fields });
-
-    const password_hash = await hashPassword(password);
-    const r = await startChallenge({ purpose: 'signup', email, payload: { name, handle, password_hash }, ip: clientIp(req) });
-    if (r.error) return fail(r.status, r.error);
-    return json({ step: 'verify', challenge: r.challenge, email: maskEmail(email) });
-  } catch (err) { return dbError(err); }
+    const hash = await hashPassword(password);
+    const { rows } = await query(
+      `INSERT INTO users (handle, display_name, email, password_hash) VALUES ($1, $2, $3, $4)
+       RETURNING user_id, handle, display_name, email, bio, location, avatar_url, banner_url, banner_hue, favourite_team_id, is_author, created_at, updated_at`,
+      [handle, name, email, hash]);
+    await createSession(rows[0].user_id);
+    return json(await liteFor(rows[0]), 201);
+  } catch (err) {
+    if (err.code === '23505') {
+      const which = /email/i.test(err.constraint || '') ? 'email' : 'handle';
+      return fail(409, 'Please fix the highlighted fields', { fields: { [which]: which === 'email' ? 'That email already has an account. Try signing in.' : 'That username is taken' } });
+    }
+    return dbError(err);
+  }
 }

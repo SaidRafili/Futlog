@@ -178,22 +178,6 @@ CREATE TABLE IF NOT EXISTS auth_attempts (           -- failed sign-ins, used to
 );
 CREATE INDEX IF NOT EXISTS auth_attempts_key_idx ON auth_attempts (key, at DESC);
 
--- E-mail verification codes (6 digits) for sign-up and sign-in. Only hashes are stored; rows are single-use and short-lived.
-CREATE TABLE IF NOT EXISTS auth_codes (
-    challenge_hash TEXT PRIMARY KEY,                 -- sha256 of the random challenge id the browser holds
-    purpose        TEXT NOT NULL CHECK (purpose IN ('signup', 'signin')),
-    email          VARCHAR(255) NOT NULL,
-    user_id        BIGINT REFERENCES users(user_id) ON DELETE CASCADE,   -- sign-in: who is signing in
-    payload        JSONB,                            -- sign-up: { name, handle, password_hash } until the e-mail is verified
-    code_hash      TEXT NOT NULL,                    -- sha256(challenge:code)
-    attempts       INT  NOT NULL DEFAULT 0,          -- wrong/used guesses for the current code
-    sends          INT  NOT NULL DEFAULT 1,          -- e-mails sent for this challenge (first + resends)
-    last_sent_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    expires_at     TIMESTAMPTZ NOT NULL
-);
-CREATE INDEX IF NOT EXISTS auth_codes_expires_idx ON auth_codes (expires_at);
-
 
 -- =====================================================================
 -- CONTENT: articles, comments, likes, saves, feed posts, ratings   (safe to re-run)
