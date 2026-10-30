@@ -27,7 +27,7 @@ export default function Page() {
 
       <section id="contact">
         <div className="sec-head"><h2>Contact</h2></div>
-        <p>Questions, corrections or ideas? Email <a className="lnk" href="mailto:hello@futlog.example">hello@futlog.example</a> or message us on <a className="lnk" href="https://x.com/futlog" target="_blank" rel="noopener noreferrer">X</a>.</p>
+        <p>Questions, corrections or ideas? Email <a className="lnk" href="mailto:futlogcom@gmail.com">futlogcom@gmail.com</a> or message us on <a className="lnk" href="https://x.com/futloogcom" target="_blank" rel="noopener noreferrer">X</a>.</p>
       </section>
 
       <section id="copyright">
@@ -38,7 +38,7 @@ export default function Page() {
         <div className="card"><b>Other people&apos;s content</b><p>Other members own what they post. Do not copy their articles, reviews or pictures elsewhere without their permission, other than short quotations with credit, as the law allows. Only post pictures, text or media that you created or have the right to share, and credit the source where one exists.</p></div>
         <div className="card"><b>Football names, crests and logos</b><p>Team names, club crests, competition logos and player names belong to their respective owners (clubs, leagues, federations and rights holders). They appear on Futlog only to identify teams and matches. Futlog is an independent fan project and is not affiliated with, sponsored by or endorsed by any club, league or governing body.</p></div>
         <div className="card"><b>Match facts and data</b><p>Facts such as fixtures, dates and final scores are not owned by anyone. Our selection, arrangement and descriptions of them, and the ratings and reviews on top of them, are protected as described above. We do not show match footage, broadcast images or commentary.</p></div>
-        <div className="card"><b>Copyright complaints</b><p>If you believe something on Futlog copies your work or infringes your rights, email <a className="lnk" href="mailto:hello@futlog.example">hello@futlog.example</a> with a link to the content, a description of your work, and your contact details. We review reports promptly, may remove or disable the content while we do, and may close the accounts of people who repeatedly infringe.</p></div>
+        <div className="card"><b>Copyright complaints</b><p>If you believe something on Futlog copies your work or infringes your rights, email <a className="lnk" href="mailto:futlogcom@gmail.com">futlogcom@gmail.com</a> with a link to the content, a description of your work, and your contact details. We review reports promptly, may remove or disable the content while we do, and may close the accounts of people who repeatedly infringe.</p></div>
       </section>
 
       <section id="privacy">
