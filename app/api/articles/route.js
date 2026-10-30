@@ -2,11 +2,14 @@ import { query } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { ARTICLE_SELECT, articleOut, checkArticle, loadArticle, readMinutes, requireUser, withTx } from '@/lib/content';
 import { cleanHandle, dbError, fail, json, readBody } from '@/lib/users';
+import { parseSeed, pickRandom } from '@/lib/shuffle';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// GET /api/articles?sort=top|new&limit=20&author=handle   published articles
+// GET /api/articles?sort=top|new|random&limit=20&author=handle   published articles
+//     sort=random -> weighted random sample of published articles (different on every request, &seed=123 repeats it)
+//     &exclude=45 -> leave that article out ("more to read" on an article page)
 //     &matchId=123 -> published articles about that match
 //     &mine=1   -> the signed-in user's own articles, drafts included
 //     &saved=1  -> the articles the signed-in user saved
@@ -27,6 +30,14 @@ export async function GET(req) {
     } else if (sp.get('author')) {
       const h = cleanHandle(sp.get('author')); if (!h) return json({ articles: [] });
       args.push(h); where += ` AND u.handle = $2`;
+    }
+    if (sp.get('sort') === 'random' && sp.get('mine') !== '1' && sp.get('saved') !== '1') {
+      const ex = Number(sp.get('exclude'));
+      if (Number.isSafeInteger(ex) && ex > 0) { args.push(ex); where += ` AND a.article_id <> $${args.length}`; }
+      const { rows } = await query(`${ARTICLE_SELECT} WHERE ${where} ORDER BY a.published_at DESC LIMIT 300`, args);
+      const seed = parseSeed(sp.get('seed'));
+      const articles = pickRandom(rows.map(r => articleOut(r, meId)), { seed, k: limit, at: x => x.publishedAt, halfLifeHours: 24 * 14, floor: 0.25 });
+      return json({ articles, seed });
     }
     const order = sp.get('mine') === '1' ? 'a.updated_at DESC'
       : sp.get('sort') === 'top' ? 'likes DESC, comments DESC, a.published_at DESC' : 'a.published_at DESC';

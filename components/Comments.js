@@ -1,20 +1,22 @@
 'use client';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useData } from './DataProvider';
 import { Avatar, Composer, LikeButton } from './ui';
 import { sendJSON } from '@/lib/profile';
+import { newSeed, pickRandom } from '@/lib/shuffle';
 import { profileHref, timeAgo } from '@/lib/util';
 
 // Comments for ANY thing: type = 'match' | 'article' | 'review' | 'post', id = that thing's id.
 // Saved in the `comments` table. Write, reply, edit and delete your own, like anyone's.
 export default function CommentSection({ type, id, placeholder = 'Add a comment', onCount, max = 1000 }) {
   const { me, meReady } = useData();
-  const [list, setList] = useState(null), [error, setError] = useState(''), [sort, setSort] = useState('new');
+  const [list, setList] = useState(null), [error, setError] = useState(''), [sort, setSort] = useState('mix');   // 'mix' = random order, new on every reload
+  const [seed, setSeed] = useState(() => newSeed());
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/comments?type=${type}&id=${id}&sort=${sort}`, { cache: 'no-store' });
+      const res = await fetch(`/api/comments?type=${type}&id=${id}&sort=${sort === 'mix' ? 'new' : sort}`, { cache: 'no-store' });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || 'HTTP ' + res.status);
       setList(j.comments); setError('');
@@ -36,11 +38,12 @@ export default function CommentSection({ type, id, placeholder = 'Add a comment'
     setList(l => l.filter(x => x.id !== c.id && x.parentId !== c.id));
   };
 
+  const mixed = useMemo(() => pickRandom((list || []).filter(c => c.parentId == null), { seed, comments: () => 0, author: c => c.user.handle, halfLifeHours: 24 * 7, floor: 0.3 }), [list, seed]);
   if (!list) return <p className="empty">Loading comments…</p>;
   const top = list.filter(c => c.parentId == null);
   const kids = pid => list.filter(c => c.parentId === pid).sort((a, b) => new Date(a.at) - new Date(b.at));
   // "new" shows newest first; the list from the server is already sorted, replies/new posts are appended locally
-  const ordered = sort === 'top' ? [...top].sort((a, b) => b.likes - a.likes || new Date(b.at) - new Date(a.at)) : [...top].sort((a, b) => new Date(b.at) - new Date(a.at));
+  const ordered = sort === 'mix' ? mixed : sort === 'top' ? [...top].sort((a, b) => b.likes - a.likes || new Date(b.at) - new Date(a.at)) : [...top].sort((a, b) => new Date(b.at) - new Date(a.at));
 
   return (
     <div className="cs">
@@ -48,7 +51,7 @@ export default function CommentSection({ type, id, placeholder = 'Add a comment'
       {error && <p className="st-err c-err" role="alert">Could not load comments: {error}</p>}
       {list.length > 1 && (
         <div className="cs-sort" role="group" aria-label="Sort comments">
-          {[['new', 'Newest'], ['top', 'Most liked']].map(([k, l]) => <button key={k} className={sort === k ? 'on' : ''} aria-pressed={sort === k} onClick={() => setSort(k)}>{l}</button>)}
+          {[['mix', 'Mix'], ['new', 'Newest'], ['top', 'Most liked']].map(([k, l]) => <button key={k} className={sort === k ? 'on' : ''} aria-pressed={sort === k} onClick={() => { if (k === 'mix' && sort === 'mix') setSeed(newSeed()); setSort(k); }}>{l}</button>)}
         </div>
       )}
       <div className="cs-list">

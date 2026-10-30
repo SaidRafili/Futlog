@@ -2,11 +2,14 @@ import { query } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { MAX_POST, POST_SELECT, checkPostImages, loadPost, posInt, postOut, requireUser, withTx } from '@/lib/content';
 import { cleanHandle, dbError, fail, json, readBody } from '@/lib/users';
+import { parseSeed, pickRandom } from '@/lib/shuffle';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// GET /api/posts?tab=latest|top|following&matchId=123&handle=alice&limit=50
+// GET /api/posts?tab=latest|top|following|mix&matchId=123&handle=alice&limit=50
+//     tab=mix -> a weighted random sample of recent posts (liked / discussed / fresh posts come up more often, never the same author twice in a row).
+//                Different on every request; pass &seed=123 to get the same mix again.
 export async function GET(req) {
   const sp = new URL(req.url).searchParams;
   const limit = Math.min(Math.max(parseInt(sp.get('limit')) || 50, 1), 100), tab = sp.get('tab') || 'latest';
@@ -18,6 +21,12 @@ export async function GET(req) {
     if (tab === 'following') {
       if (!me) return json({ posts: [] });
       where.push(`p.user_id IN (SELECT followee_id FROM follows WHERE follower_id = $1::bigint)`);
+    }
+    if (tab === 'mix') {                     // candidate pool = the newest 400 posts, then a weighted random sample of `limit`
+      const { rows } = await query(`${POST_SELECT} ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY p.created_at DESC LIMIT 400`, args);
+      const seed = parseSeed(sp.get('seed'));
+      const posts = pickRandom(rows.map(r => postOut(r, meId)), { seed, k: limit, halfLifeHours: 72 });
+      return json({ posts, seed });
     }
     const order = tab === 'top' ? 'likes DESC, p.created_at DESC' : 'p.created_at DESC';
     const { rows } = await query(`${POST_SELECT} ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY ${order} LIMIT ${limit}`, args);

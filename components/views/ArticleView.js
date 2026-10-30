@@ -70,6 +70,13 @@ function ArticlePage({ a }) {
     catch (e) { setSaved(was); if (e.status === 401) openAuth('signin'); }
   };
 
+  const [more, setMore] = useState([]);       // random other articles, new picks on every visit / reload
+  useEffect(() => {
+    let dead = false;
+    fetch(`/api/articles?sort=random&limit=3&exclude=${a.id}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => { if (!dead) setMore(j?.articles || []); }).catch(() => {});
+    return () => { dead = true; };
+  }, [a.id]);
+
   const matches = a.matchIds.map(byId).filter(Boolean);
   const draft = a.status !== 'published';
 
@@ -89,6 +96,12 @@ function ArticlePage({ a }) {
               ? <p className="empty">Comments open when the article is published.</p>
               : <CommentSection type="article" id={a.id} placeholder="Add a comment on this article" onCount={setCcount} />}
           </section>
+          {more.length > 0 && (
+            <section className="ar-more">
+              <div className="sec-head"><h2>More to read</h2></div>
+              <div className="article-list">{more.map(x => <Link key={x.id} href={`/article/${x.id}`}><b>{x.title}</b><span>{x.category} · {x.readMinutes || 1} min read</span></Link>)}</div>
+            </section>
+          )}
         </article>
 
         <aside className="ar-side">

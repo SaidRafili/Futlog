@@ -104,3 +104,12 @@ The server checks the type, size (450 KB each) and file signature of every pictu
 - `GET /api/search?q=&types=people,articles,posts&counts=posts&limit=&offset=` and `GET /api/search/suggest?q=`. Matches and teams are searched in the browser
   (`lib/matchsearch.js`) because the fixtures are already loaded there. Searching scans the tables (fast up to tens of thousands of rows); if you outgrow that,
   add trigram indexes on `lower(title)`, `lower(body)` and `lower(display_name)`.
+
+## Random mix (home page, feed, comments)
+`lib/shuffle.js` is a weighted random sampler (Efraimidis–Spirakis). Each item gets weight = engagement (log of likes and comments) × recency (half-life decay, with a floor so older items can still appear), then a random order is drawn, so liked / discussed / fresh content shows up more often but nothing is excluded. A final pass avoids showing the same author twice in a row.
+
+- `GET /api/posts?tab=mix&limit=N[&seed=S]` – random posts (the **Mix** tab is the default on `/feed`, with a **Shuffle** button)
+- `GET /api/articles?sort=random&limit=N[&exclude=ID][&seed=S]` – random articles (home page, "More to read" under an article)
+- `GET /api/comments?type=match&top=1&random=1&limit=N[&seed=S]` – random comments (home page)
+- Comments under an article / match / post default to the **Mix** order (click Mix again to reshuffle)
+- No `seed` = a different result on every request; the same `seed` gives the same result.

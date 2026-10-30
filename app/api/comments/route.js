@@ -2,6 +2,7 @@ import { query } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { COMMENT_SELECT, MAX_COMMENT, TARGETS, bigId, commentOut, loadComment, requireUser, targetExists } from '@/lib/content';
 import { dbError, fail, json, readBody } from '@/lib/users';
+import { parseSeed, pickRandom } from '@/lib/shuffle';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -9,7 +10,9 @@ export const runtime = 'nodejs';
 // GET /api/comments?type=match|article|review|post&id=123&sort=new|top|old
 //     -> every comment (and reply) on that thing, with its author, like count and whether you liked / wrote it
 // GET /api/comments?type=match&top=1&limit=3
-//     -> the most-liked comments of that type across the whole site (home page)
+//     -> the most-liked comments of that type across the whole site
+// GET /api/comments?type=match&top=1&random=1&limit=3
+//     -> a weighted random sample of recent comments of that type (home page); different on every request, &seed=123 repeats it
 export async function GET(req) {
   const sp = new URL(req.url).searchParams;
   const type = sp.get('type');
@@ -18,6 +21,12 @@ export async function GET(req) {
     const me = await getSessionUser(), meId = me?.user_id ?? null;
     if (sp.get('top') === '1') {
       const limit = Math.min(Math.max(parseInt(sp.get('limit')) || 3, 1), 20);
+      if (sp.get('random') === '1') {
+        const { rows } = await query(`${COMMENT_SELECT} WHERE c.target_type = $2 AND c.parent_id IS NULL ORDER BY c.created_at DESC LIMIT 300`, [meId, type]);
+        const seed = parseSeed(sp.get('seed'));
+        const comments = pickRandom(rows.map(r => commentOut(r, meId)), { seed, k: limit, comments: () => 0, halfLifeHours: 24 * 7, floor: 0.2 });
+        return json({ comments, seed });
+      }
       const { rows } = await query(`${COMMENT_SELECT} WHERE c.target_type = $2 AND c.parent_id IS NULL ORDER BY likes DESC, c.created_at DESC LIMIT ${limit}`, [meId, type]);
       return json({ comments: rows.map(r => commentOut(r, meId)) });
     }

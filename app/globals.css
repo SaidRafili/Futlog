@@ -825,3 +825,8 @@ mark{background:rgba(167,139,250,.28);color:#fff;border-radius:3px;padding:0 1px
   .cred{width:auto}
   .mp-body{grid-template-columns:1fr}
 }
+
+/* ---------- random mix: shuffle button, "more to read" ---------- */
+.fd-tabs .fd-shuffle{margin-left:auto;border:1px solid var(--accent);border-radius:12px;padding:3px 12px;font-size:12px;font-style:normal;color:var(--accent);border-bottom-width:1px}
+.fd-tabs .fd-shuffle:hover{background:var(--accent-deep);color:#fff}
+.ar-more{margin-top:32px}

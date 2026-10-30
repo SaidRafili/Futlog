@@ -37,7 +37,7 @@ function HomeComment({ c }) {
 export default function HomeView() {
   const d = useData();
   const ready = d.status === 'ready';
-  const [arts, setArts] = useState(null), [comments, setComments] = useState(null), [posts, setPosts] = useState(null);
+  const [arts, setArts] = useState(null), [newest, setNewest] = useState([]), [comments, setComments] = useState(null), [posts, setPosts] = useState(null);
   const [open, setOpen] = useState(() => new Set());
   const toggle = id => setOpen(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const who = d.me?.handle || '';
@@ -45,17 +45,19 @@ export default function HomeView() {
   // everything below comes from PostgreSQL; re-read after sign-in so the "liked" hearts are right
   useEffect(() => {
     if (!d.meReady) return;
-    getJSON('/api/posts?tab=latest&limit=6').then(j => setPosts(j?.posts || []));
-    getJSON('/api/articles?sort=top&limit=4').then(j => setArts(j?.articles || []));
-    getJSON('/api/comments?type=match&top=1&limit=3').then(j => setComments(j?.comments || []));
+    // random picks: a weighted random sample (liked / discussed / fresh items come up more often), different on every reload
+    getJSON('/api/posts?tab=mix&limit=6').then(j => setPosts(j?.posts || []));
+    getJSON('/api/articles?sort=random&limit=4').then(j => setArts(j?.articles || []));
+    getJSON('/api/comments?type=match&top=1&random=1&limit=3').then(j => setComments(j?.comments || []));
+    getJSON('/api/articles?sort=new&limit=3').then(j => setNewest(j?.articles || []));   // "Recently added" stays newest-first
   }, [d.meReady, who]);
 
   const featured = arts?.[0], rest = arts?.slice(1) || [];
   const meta = a => `${a.category} · ${a.readMinutes || 1} min read`;
 
   // "Recently added": newest published articles + newest finished matches, newest first
-  const updates = ready && arts ? [
-    ...[...arts].filter(a => a.publishedAt).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)).slice(0, 3)
+  const updates = ready ? [
+    ...[...newest].filter(a => a.publishedAt).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)).slice(0, 3)
       .map(a => ({ key: 'a' + a.id, t: `New article: ${a.title}`, href: `/article/${a.id}`, at: new Date(a.publishedAt).getTime() })),
     ...d.matches.slice(0, 2).map(m => ({ key: 'm' + m.id, t: `New match added: ${d.label(m)}`, href: `/match/${m.id}`, at: m.ts })),
   ].sort((x, y) => y.at - x.at) : [];
@@ -65,7 +67,7 @@ export default function HomeView() {
       <div className="ad-space" aria-hidden="true" />
       <main className="content">
         <section id="posts">
-          <div className="sec-head"><h2>Latest posts</h2><Link href="/feed">Open the feed</Link></div>
+          <div className="sec-head"><h2>Posts to explore</h2><Link href="/feed">Open the feed</Link></div>
           {posts && !posts.length
             ? <p className="empty">No posts yet. <Link href="/feed" style={{ color: 'var(--accent)' }}>Share the first one.</Link></p>
             : <div className="home-posts">{ready && posts?.map(p => (
@@ -80,14 +82,14 @@ export default function HomeView() {
         </section>
 
         <section>
-          <div className="sec-head"><h2>Most liked comments on matches</h2></div>
+          <div className="sec-head"><h2>Match comments worth reading</h2></div>
           {comments && !comments.length
             ? <p className="empty">No match comments yet. Open a match and start the conversation.</p>
             : <div className="comments">{ready && comments?.map(c => <HomeComment key={c.id} c={c} />)}</div>}
         </section>
 
         <section id="articles">
-          <div className="sec-head"><h2>Top articles</h2><Link href="/write">Write an article</Link></div>
+          <div className="sec-head"><h2>Articles to read</h2><Link href="/write">Write an article</Link></div>
           {arts && !featured ? <p className="empty">No articles have been published yet. <Link href="/write" style={{ color: 'var(--accent)' }}>Write the first one.</Link></p> : (
             <div className="articles">
               {featured && (

@@ -6,6 +6,7 @@ import PostCard from '../PostCard';
 import PostComposer from '../PostComposer';
 import { UserCard } from '../ui';
 import { sendJSON } from '@/lib/profile';
+import { newSeed } from '@/lib/shuffle';
 
 export default function FeedView() {
   const d = useData();
@@ -18,7 +19,8 @@ export default function FeedView() {
 function FeedPage() {
   const { byId, label, following, me } = useData();
   const [posts, setPosts] = useState(null), [error, setError] = useState('');
-  const [tab, setTab] = useState('latest');
+  const [tab, setTab] = useState('mix');                 // 'mix' = randomly distributed posts, new mix on every reload
+  const [seed, setSeed] = useState(() => newSeed());       // changes on every reload and on the Shuffle button
   const [fm, setFm] = useState(0);                       // match filter
   const [open, setOpen] = useState(() => new Set());
   const [sug, setSug] = useState([]);
@@ -26,12 +28,12 @@ function FeedPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/posts?tab=${tab}&limit=100`, { cache: 'no-store' });
+      const res = await fetch(`/api/posts?tab=${tab}&limit=100${tab === 'mix' ? '&seed=' + seed : ''}`, { cache: 'no-store' });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || 'HTTP ' + res.status);
       setPosts(j.posts); setError('');
     } catch (e) { setError(e.message); setPosts(p => p || []); }
-  }, [tab]);
+  }, [tab, seed]);
   useEffect(() => { load(); }, [load, who]);
 
   useEffect(() => {      // "Who to follow": people from the users table that you do not follow yet
@@ -58,9 +60,10 @@ function FeedPage() {
         <section>
           <div className="fd-head"><h1>Feed</h1>
             <div className="fd-tabs" role="tablist">
-              {[['latest', 'Latest'], ['top', 'Top'], ['following', 'Following']].map(([v, l]) => (
+              {[['mix', 'Mix'], ['latest', 'Latest'], ['top', 'Top'], ['following', 'Following']].map(([v, l]) => (
                 <button key={v} role="tab" aria-selected={tab === v} onClick={() => setTab(v)}>{l}</button>
               ))}
+              {tab === 'mix' && <button className="fd-shuffle" onClick={() => setSeed(newSeed())} title="Show a new random mix">Shuffle</button>}
             </div>
           </div>
           <PostComposer onPosted={posted} />
