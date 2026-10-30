@@ -1,10 +1,9 @@
 import Link from 'next/link';
 
 const social = [
-  ['X / Twitter', 'https://x.com/futlog'],
-  ['Instagram', 'https://instagram.com/futlog'],
-  ['YouTube', 'https://youtube.com/@futlog'],
-  ['Discord', 'https://discord.gg/futlog']
+  ['X / Twitter', 'https://x.com/futloogcom'],
+  ['Instagram', 'https://instagram.com/futloog'],
+  ['Linkedin', 'https://www.linkedin.com/company/futloog']
 ];
 
 export default function Footer() {
