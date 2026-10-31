@@ -945,14 +945,3 @@ a.nav-write{margin-left:6px}                    /* "Write" now sits beside the n
   .pf-act li{padding:12px}
   .pcard h3{font-size:17px}
 }
-
-/* ---------- profile: what the profile liked (Posts / Articles / Comments / Matches) ---------- */
-.pf-ltabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.pf-ltabs a{background:#12122a;border:1px solid transparent;border-radius:16px;padding:5px 14px;color:var(--muted);font-size:13px}
-.pf-ltabs a:hover{color:#fff}
-.pf-ltabs a.on{background:var(--accent-deep);color:#fff;font-weight:600}
-@media (max-width:600px){
-  .pf-ltabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-  .pf-ltabs::-webkit-scrollbar{display:none}
-  .pf-ltabs a{flex:none;padding:7px 14px}
-}
