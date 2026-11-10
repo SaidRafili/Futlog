@@ -964,9 +964,3 @@ a.nav-write{margin-left:6px}                    /* "Write" now sits beside the n
   .pf-act li{padding:12px}
   .pcard h3{font-size:17px}
 }
-/* article page: markdown content (headings, lists, quotes, pictures) */
-.ar-body h2,.ar-body h3,.ar-body h4{font-family:'Poppins',sans-serif;margin:28px 0 12px;line-height:1.25;max-width:780px}
-.ar-body ul,.ar-body ol{font-size:16.5px;line-height:1.65;margin:0 0 16px;padding-left:22px;max-width:780px}.ar-body li{margin-bottom:8px}
-.ar-body blockquote{margin:0 0 16px;padding-left:14px;border-left:3px solid var(--accent);color:var(--muted);font-size:16.5px;line-height:1.65;max-width:780px}
-.ar-body a{color:var(--accent);text-decoration:underline}
-.ar-body .w-img{display:block;max-width:100%;height:auto;border-radius:8px;margin:0 0 18px}

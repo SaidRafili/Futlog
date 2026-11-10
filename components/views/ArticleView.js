@@ -8,7 +8,6 @@ import CommentSection from '../Comments';
 import { FollowButton, LikeButton, ShareButton } from '../ui';
 import { sendJSON } from '@/lib/profile';
 import { fmt, shortDate } from '@/lib/util';
-import { renderMarkdown } from '@/lib/markdown';
 
 const path = d => <svg viewBox="0 0 24 24"><path d={d} /></svg>;
 const ARI = {
@@ -90,7 +89,7 @@ function ArticlePage({ a }) {
           {draft && <p className="pf-note">This is a draft. Only you can see it. <Link href={`/write/${a.id}`}>Edit and publish it</Link></p>}
           <h1>{a.title}</h1>
           <p className="ar-by"><Link href={`/profile/${au.handle}`}>{au.name}</Link> <span>· {a.category} · {a.publishedAt ? shortDate(a.publishedAt) : 'Draft'} · {a.readMinutes || 1} min read</span></p>
-          <div className="ar-body">{a.body.length ? renderMarkdown(a.body.join('\n\n')) : <p className="empty">This article has no text yet.</p>}</div>
+          <div className="ar-body">{a.body.length ? a.body.map((p, i) => <p key={i}>{p}</p>) : <p className="empty">This article has no text yet.</p>}</div>
           <section className="ar-comments">
             <div className="sec-head" ref={commentsRef}><h2>Comments ({ccount})</h2></div>
             {draft
