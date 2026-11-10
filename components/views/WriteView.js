@@ -7,13 +7,13 @@ import { CATEGORIES } from '@/lib/consts';
 import { sendJSON } from '@/lib/profile';
 
 const BLANK = { title: '', category: CATEGORIES[0], cover: '', body: '', matchIds: [] };   // new articles start on the first fixed category
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 // Upload one image -> POST /api/article-images (multipart, field "file").
 // Expected response: { url } or { id }  (url is then /api/article-images/<id>).
 async function uploadImage(file) {
   if (!file.type.startsWith('image/')) throw new Error('Choose an image file (JPG, PNG, WebP or GIF).');
-  if (file.size > MAX_IMAGE_BYTES) throw new Error('The image is larger than 5 MB.');
+  if (file.size > MAX_IMAGE_BYTES) throw new Error('The image is larger than 4 MB.');
   const fd = new FormData();
   fd.append('file', file);
   const res = await fetch('/api/article-images', { method: 'POST', body: fd });
