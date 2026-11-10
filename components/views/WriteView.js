@@ -1,12 +1,87 @@
 'use client';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useData } from '../DataProvider';
 import { CATEGORIES } from '@/lib/consts';
 import { sendJSON } from '@/lib/profile';
 
 const BLANK = { title: '', category: 'Analysis', cover: '', body: '', matchIds: [] };
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+// Upload one image -> POST /api/article-images (multipart, field "file").
+// Expected response: { url } or { id }  (url is then /api/article-images/<id>).
+async function uploadImage(file) {
+  if (!file.type.startsWith('image/')) throw new Error('Choose an image file (JPG, PNG, WebP or GIF).');
+  if (file.size > MAX_IMAGE_BYTES) throw new Error('The image is larger than 5 MB.');
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch('/api/article-images', { method: 'POST', body: fd });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || 'Upload failed (HTTP ' + res.status + ').');
+  const url = j.url || (j.id != null ? '/api/article-images/' + j.id : '');
+  if (!url) throw new Error('Upload succeeded but no image link was returned.');
+  return url;
+}
+
+// ---------- tiny markdown renderer (no dangerouslySetInnerHTML) ----------
+const safeUrl = u => (/^(https?:\/\/|\/)/i.test(u) ? u : '#');
+
+// inline: ![alt](url)  [text](url)  **bold**  *italic*   (unmatched markers stay as plain text)
+function inline(text, key = '') {
+  const re = /!\[([^\]]*)\]\(([^)\s]+)\)|\[([^\]]+)\]\(([^)\s]+)\)|\*\*([^*]+)\*\*|\*([^*\s][^*]*)\*/g;
+  const out = [];
+  let last = 0, m, i = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    const k = key + i++;
+    if (m[2]) out.push(<img key={k} src={safeUrl(m[2])} alt={m[1]} className="w-img" />);
+    else if (m[4]) out.push(<a key={k} href={safeUrl(m[4])} target="_blank" rel="noopener noreferrer">{m[3]}</a>);
+    else if (m[5]) out.push(<strong key={k}>{m[5]}</strong>);
+    else out.push(<em key={k}>{m[6]}</em>);
+    last = re.lastIndex;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+// Each blank-line separated paragraph is rendered on its own; consecutive list items are merged into one list.
+function renderMarkdown(src) {
+  const lines = src.split('\n');
+  const nodes = [];
+  let list = null, para = [];
+  const flushPara = () => { if (para.length) { nodes.push(<p key={nodes.length}>{inline(para.join(' '), 'p' + nodes.length)}</p>); para = []; } };
+  const flushList = () => { if (list) { const L = list; nodes.push(L.ordered
+    ? <ol key={nodes.length}>{L.items.map((t, i) => <li key={i}>{inline(t, 'o' + i)}</li>)}</ol>
+    : <ul key={nodes.length}>{L.items.map((t, i) => <li key={i}>{inline(t, 'u' + i)}</li>)}</ul>); list = null; } };
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    let m;
+    if (!line.trim()) { flushPara(); continue; }          // blank line: paragraph break (list may continue)
+    if ((m = line.match(/^(#{1,3})\s+(.*)$/))) {
+      flushPara(); flushList();
+      const H = 'h' + (m[1].length + 1);                   // # -> h2, ## -> h3, ### -> h4 (page title is the h1)
+      nodes.push(<H key={nodes.length}>{inline(m[2], 'h' + nodes.length)}</H>);
+    } else if ((m = line.match(/^\s*[-*]\s+(.*)$/))) {
+      flushPara();
+      if (!list || list.ordered) { flushList(); list = { ordered: false, items: [] }; }
+      list.items.push(m[1]);
+    } else if ((m = line.match(/^\s*\d+[.)]\s+(.*)$/))) {
+      flushPara();
+      if (!list || !list.ordered) { flushList(); list = { ordered: true, items: [] }; }
+      list.items.push(m[1]);
+    } else if ((m = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/))) {   // image on its own line
+      flushPara(); flushList();
+      nodes.push(<img key={nodes.length} src={safeUrl(m[2])} alt={m[1]} className="w-img" />);
+    } else if ((m = line.match(/^>\s?(.*)$/))) {
+      flushPara(); flushList();
+      nodes.push(<blockquote key={nodes.length}>{inline(m[1], 'q' + nodes.length)}</blockquote>);
+    } else { flushList(); para.push(line.trim()); }
+  }
+  flushPara(); flushList();
+  return nodes;
+}
 
 // Write / edit an article. /write = new article, /write/:id = edit one of yours.
 // Draft -> POST/PUT /api/articles (status 'draft'); Publish -> status 'published'; Unpublish -> back to 'draft'.
@@ -38,6 +113,10 @@ function Editor({ id }) {
   const [f, setF] = useState(BLANK);
   const [busy, setBusy] = useState(''), [msg, setMsg] = useState(null), [fields, setFields] = useState({});
   const [pick, setPick] = useState('');
+  const [tab, setTab] = useState('write');              // 'write' | 'preview'
+  const [upl, setUpl] = useState('');                   // '' | 'cover' | 'body'
+  const [coverBroken, setCoverBroken] = useState(false);
+  const coverInput = useRef(null), bodyInput = useRef(null), bodyArea = useRef(null);
 
   useEffect(() => { document.title = (id ? 'Edit article' : 'New article') + ' · Futlog'; }, [id]);
   useEffect(() => {
@@ -57,6 +136,45 @@ function Editor({ id }) {
   const words = f.body.split(/\s+/).filter(Boolean).length;
   const base = art ? toForm(art) : BLANK;
   const dirty = ['title', 'category', 'cover', 'body'].some(k => f[k] !== base[k]) || f.matchIds.join() !== base.matchIds.join();
+
+  // ----- image uploads -----
+  const pickCover = async e => {
+    const file = e.target.files?.[0]; e.target.value = '';
+    if (!file) return;
+    setUpl('cover'); setMsg(null);
+    try { set('cover', await uploadImage(file)); setCoverBroken(false); }
+    catch (err) { setMsg({ bad: true, text: err.message }); }
+    finally { setUpl(''); }
+  };
+  const pickBodyImage = async e => {
+    const file = e.target.files?.[0]; e.target.value = '';
+    if (!file) return;
+    setUpl('body'); setMsg(null);
+    try {
+      const url = await uploadImage(file);
+      const ta = bodyArea.current;
+      const at = ta ? ta.selectionStart : f.body.length;
+      const before = f.body.slice(0, at), after = f.body.slice(at);
+      const md = (before && !before.endsWith('\n\n') ? (before.endsWith('\n') ? '\n' : '\n\n') : '') + `![](${url})` + (after && !after.startsWith('\n\n') ? '\n\n' : '');
+      set('body', before + md + after);
+    } catch (err) { setMsg({ bad: true, text: err.message }); }
+    finally { setUpl(''); }
+  };
+
+  // wrap the selected text (bold / italic) or insert a line prefix (heading / list)
+  const wrap = (L, R = L) => {
+    const ta = bodyArea.current; if (!ta) return;
+    const { selectionStart: s, selectionEnd: e } = ta;
+    const sel = f.body.slice(s, e) || 'text';
+    set('body', f.body.slice(0, s) + L + sel + R + f.body.slice(e));
+    requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(s + L.length, s + L.length + sel.length); });
+  };
+  const prefix = p => {
+    const ta = bodyArea.current; if (!ta) return;
+    const s = ta.selectionStart, lineStart = f.body.lastIndexOf('\n', s - 1) + 1;
+    set('body', f.body.slice(0, lineStart) + p + f.body.slice(lineStart));
+    requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(s + p.length, s + p.length); });
+  };
 
   // status: 'draft' | 'published' (what the article should be after this save)
   const save = async status => {
@@ -85,6 +203,7 @@ function Editor({ id }) {
   const published = art?.status === 'published';
   const err = k => fields[k] && <small className="st-err">{fields[k]}</small>;
   const chosen = f.matchIds.map(byId).filter(Boolean);
+  const hasCover = !!f.cover.trim();
 
   return (
     <main className="settings">
@@ -95,14 +214,43 @@ function Editor({ id }) {
         <section className="st-card">
           <div className="st-field"><label htmlFor="w-title">Title</label>
             <input id="w-title" value={f.title} onChange={e => set('title', e.target.value)} maxLength={300} aria-invalid={!!fields.title} placeholder="What is the article about?" />{err('title')}</div>
-          <div className="st-two">
-            <div className="st-field"><label htmlFor="w-cat">Category</label>
-              <input id="w-cat" list="w-cats" value={f.category} onChange={e => set('category', e.target.value)} maxLength={50} aria-invalid={!!fields.category} /><datalist id="w-cats">{CATEGORIES.map(c => <option key={c} value={c} />)}</datalist>{err('category')}</div>
-            <div className="st-field"><label htmlFor="w-cover">Cover image link <small>(optional)</small></label>
-              <input id="w-cover" value={f.cover} onChange={e => set('cover', e.target.value)} placeholder="https://…" inputMode="url" aria-invalid={!!fields.cover} />{err('cover')}</div>
-          </div>
-          <div className="st-field"><label htmlFor="w-body">Text</label>
-            <textarea id="w-body" className="w-body" value={f.body} onChange={e => set('body', e.target.value)} rows={16} aria-invalid={!!fields.body} placeholder={'Write your article here.\n\nLeave a blank line to start a new paragraph.'} />
+
+          <div className="st-field"><label htmlFor="w-cat">Category</label>
+            <input id="w-cat" list="w-cats" value={f.category} onChange={e => set('category', e.target.value)} maxLength={50} aria-invalid={!!fields.category} /><datalist id="w-cats">{CATEGORIES.map(c => <option key={c} value={c} />)}</datalist>{err('category')}</div>
+
+          {/* ----- cover photo ----- */}
+          <div className="st-field"><label htmlFor="w-cover">Cover photo <small>(optional)</small></label>
+            {hasCover && !coverBroken && <img className="w-cover" src={f.cover} alt="Cover preview" onError={() => setCoverBroken(true)} />}
+            {hasCover && coverBroken && <p className="w-cover-bad">The preview could not be loaded. Check the link below.</p>}
+            <div className="w-cover-bar">
+              <input ref={coverInput} type="file" accept="image/*" hidden onChange={pickCover} />
+              <button type="button" className="btn outline" disabled={!!upl || !!busy} onClick={() => coverInput.current?.click()}>
+                {upl === 'cover' ? 'Uploading…' : hasCover ? 'Replace photo' : 'Upload photo'}</button>
+              {hasCover && <button type="button" className="btn ghost" disabled={!!upl || !!busy} onClick={() => { set('cover', ''); setCoverBroken(false); }}>Remove</button>}
+              <input id="w-cover" value={f.cover} onChange={e => { set('cover', e.target.value); setCoverBroken(false); }} placeholder="or paste an image link (https://…)" inputMode="url" aria-invalid={!!fields.cover} />
+            </div>{err('cover')}</div>
+
+          {/* ----- text: Write / Preview ----- */}
+          <div className="st-field"><label id="w-body-l" htmlFor="w-body">Text</label>
+            <div className="w-tabs" role="tablist" aria-label="Text editor mode">
+              <button type="button" role="tab" id="w-tab-write" aria-selected={tab === 'write'} aria-controls="w-panel" className={`w-tab ${tab === 'write' ? 'on' : ''}`} onClick={() => setTab('write')}>Write</button>
+              <button type="button" role="tab" id="w-tab-preview" aria-selected={tab === 'preview'} aria-controls="w-panel" className={`w-tab ${tab === 'preview' ? 'on' : ''}`} onClick={() => setTab('preview')}>Preview</button>
+            </div>
+            <div id="w-panel" role="tabpanel" aria-labelledby={tab === 'write' ? 'w-tab-write' : 'w-tab-preview'}>
+              {tab === 'write' ? <>
+                <div className="w-tools">
+                  <button type="button" className="btn ghost" title="Heading" onClick={() => prefix('# ')}>H</button>
+                  <button type="button" className="btn ghost" title="Bold" onClick={() => wrap('**')}><b>B</b></button>
+                  <button type="button" className="btn ghost" title="Italic" onClick={() => wrap('*')}><i>I</i></button>
+                  <button type="button" className="btn ghost" title="Bulleted list" onClick={() => prefix('- ')}>• List</button>
+                  <input ref={bodyInput} type="file" accept="image/*" hidden onChange={pickBodyImage} />
+                  <button type="button" className="btn ghost" title="Insert image" disabled={!!upl} onClick={() => bodyInput.current?.click()}>{upl === 'body' ? 'Uploading…' : 'Image'}</button>
+                </div>
+                <textarea id="w-body" ref={bodyArea} className="w-body" value={f.body} onChange={e => set('body', e.target.value)} rows={16} aria-invalid={!!fields.body} placeholder={'Write your article here.\n\nLeave a blank line to start a new paragraph.\n\n# Heading   - list item   **bold**   *italic*'} />
+              </> : <div className="w-preview">
+                {f.body.trim() ? renderMarkdown(f.body) : <p className="empty">Nothing to preview yet.</p>}
+              </div>}
+            </div>
             <small className="count">{words} words · about {Math.max(1, Math.ceil(words / 200))} min read</small>{err('body')}</div>
         </section>
 
