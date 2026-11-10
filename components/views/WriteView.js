@@ -6,7 +6,7 @@ import { useData } from '../DataProvider';
 import { CATEGORIES } from '@/lib/consts';
 import { sendJSON } from '@/lib/profile';
 
-const BLANK = { title: '', category: 'Analysis', cover: '', body: '', matchIds: [] };
+const BLANK = { title: '', category: CATEGORIES[0], cover: '', body: '', matchIds: [] };   // new articles start on the first fixed category
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 // Upload one image -> POST /api/article-images (multipart, field "file").
@@ -216,7 +216,11 @@ function Editor({ id }) {
             <input id="w-title" value={f.title} onChange={e => set('title', e.target.value)} maxLength={300} aria-invalid={!!fields.title} placeholder="What is the article about?" />{err('title')}</div>
 
           <div className="st-field"><label htmlFor="w-cat">Category</label>
-            <input id="w-cat" list="w-cats" value={f.category} onChange={e => set('category', e.target.value)} maxLength={50} aria-invalid={!!fields.category} /><datalist id="w-cats">{CATEGORIES.map(c => <option key={c} value={c} />)}</datalist>{err('category')}</div>
+            <select id="w-cat" value={f.category} onChange={e => set('category', e.target.value)} aria-invalid={!!fields.category}>
+              {/* an older article may carry a category that is no longer in the list: keep it selectable until the author changes it */}
+              {!CATEGORIES.includes(f.category) && f.category && <option value={f.category}>{f.category}</option>}
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>{err('category')}</div>
 
           {/* ----- cover photo ----- */}
           <div className="st-field"><label htmlFor="w-cover">Cover photo <small>(optional)</small></label>
