@@ -24,14 +24,18 @@ export default function ProfileView() {
   const d = useData();
   const raw = useParams().u;
   let h = raw; try { h = decodeURIComponent(raw); } catch {}
-  let tab = useSearchParams().get('tab');
+  const sp = useSearchParams();
+  let tab = sp.get('tab'), sub = sp.get('type');
+  if (tab === 'likedposts') { tab = 'liked'; sub = 'posts'; }          // old links: the liked posts / comments used to be tabs of their own
+  else if (tab === 'likedcomments') { tab = 'liked'; sub = 'comments'; }
   if (!PTABS.some(t => t[0] === tab)) tab = 'activity';
+  if (tab !== 'liked' || !LIKED_SEGS.some(x => x[0] === sub)) sub = 'games';
   if (d.status !== 'ready') return null;
-  return <ProfileLoader key={h} h={h} tab={tab} />;
+  return <ProfileLoader key={h} h={h} tab={tab} sub={sub} />;
 }
 
 // Loads the profile from PostgreSQL (/api/users/:handle). A handle that is not in the users table gets a "no such user" page.
-function ProfileLoader({ h, tab }) {
+function ProfileLoader({ h, tab, sub }) {
   const { T, byId, me } = useData();
   const [st, setSt] = useState({ phase: 'loading' });
 
@@ -47,10 +51,11 @@ function ProfileLoader({ h, tab }) {
   if (st.phase === 'loading') return <main id="profilePage"><div className="pf-cover" style={{ '--h': hue(h) }} /></main>;
   if (st.phase === 'missing') return <main id="profilePage"><div className="pf-cover" style={{ '--h': hue(h) }} /><div className="pf-wrap"><p className="empty">There is no user called @{h}. <Link href="/" style={{ color: 'var(--accent)' }}>Back to home</Link></p></div></main>;
   if (st.phase === 'error') return <main id="profilePage"><div className="pf-cover" style={{ '--h': hue(h) }} /><div className="pf-wrap"><p className="pf-note" role="alert">Could not load this profile: {st.error}</p></div></main>;
-  return <ProfilePage key={h + '|' + tab} h={h} tab={tab} u={st.u} />; // filters/sort reset when the profile or tab changes
+  return <ProfilePage key={h + '|' + tab + '|' + sub} h={h} tab={tab} sub={sub} u={st.u} />; // filters/sort reset when the profile or tab changes
 }
 
-const LIKED_TABS = ['likedposts', 'likedcomments'];
+// The Liked tab has one segment per kind of thing the user liked (shown as a switch above the list).
+const LIKED_SEGS = [['games', 'Games'], ['posts', 'Posts'], ['comments', 'Comments'], ['articles', 'Articles']];
 const LOCK = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10.5" rx="2.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></svg>;
 
 const ACT = {
@@ -83,26 +88,27 @@ function ActivityRow({ a, label }) {
   );
 }
 
-// What the user liked on posts / comments / articles (fetched when that sub-tab is opened).
-function LikedContent({ h, tab, name, q, s }) {
+// Posts / comments / articles of one user, fetched when that tab or segment is opened.
+//   mode 'written': what the user wrote themselves (Posts and Comments tabs)   -> /api/users/:h/written
+//   mode 'liked'  : what the user liked (segments of the Liked tab)             -> /api/users/:h/likes
+function UserContent({ h, mode, type, name, q, s }) {
   const { byId, label } = useData();
-  const type = { likedposts: 'post', likedcomments: 'comment', likedarticles: 'article' }[tab];
   const [st, setSt] = useState({ phase: 'loading' }), [open, setOpen] = useState(() => new Set());
   useEffect(() => {
     let dead = false;
-    fetch(`/api/users/${encodeURIComponent(h)}/likes?type=${type}`, { cache: 'no-store' })
+    fetch(`/api/users/${encodeURIComponent(h)}/${mode === 'written' ? 'written' : 'likes'}?type=${type}`, { cache: 'no-store' })
       .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status); return j; })
       .then(j => { if (!dead) setSt({ phase: 'ready', items: j.posts || j.comments || j.articles || [] }); })
       .catch(e => { if (!dead) setSt({ phase: 'error', message: e.message }); });
     return () => { dead = true; };
-  }, [h, type]);
+  }, [h, mode, type]);
   if (st.phase === 'loading') return <p className="empty">Loading…</p>;
   if (st.phase === 'error') return <p className="pf-note" role="alert">Could not load this: {st.message}</p>;
   const text = x => (x.body || x.title || '').toLowerCase();
   let items = st.items.filter(x => !q || text(x).includes(q.toLowerCase()));
   if (s === 'az') items = [...items].sort((a, b) => text(a).localeCompare(text(b)));
   else if (s === 'old') items = [...items].reverse();
-  if (!items.length) return <p className="empty">{q ? 'Nothing matches your search.' : `${name} has not liked any ${type}s yet.`}</p>;
+  if (!items.length) return <p className="empty">{q ? 'Nothing matches your search.' : mode === 'written' ? `${name} has not ${type === 'post' ? 'posted' : 'commented'} yet.` : `${name} has not liked any ${type}s yet.`}</p>;
   if (type === 'post') return items.map(p => (
     <PostCard key={p.id} p={p} m={p.matchId ? byId(p.matchId) : null} isOpen={open.has(p.id)}
       onToggle={() => setOpen(o => { const n = new Set(o); n.has(p.id) ? n.delete(p.id) : n.add(p.id); return n; })} />
@@ -127,7 +133,7 @@ function LikedContent({ h, tab, name, q, s }) {
   ))}</div>;
 }
 
-function ProfilePage({ h, tab, u }) {
+function ProfilePage({ h, tab, sub, u }) {
   const { T, matches, label } = useData();
   const { me: session } = useData();
   const me = !!session && h === session.handle;
@@ -136,16 +142,20 @@ function ProfilePage({ h, tab, u }) {
   useEffect(() => { document.title = `${u.name} (@${h}) · Futlog`; }, [u, h]);
 
   const stats = [['matches', u.watched.length, 'Watched'], ['liked', u.liked.length, 'Liked'], ['articles', u.arts.filter(a => !a.draft).length, 'Articles']];
-  const likedSub = LIKED_TABS.includes(tab);
+  const likedGames = tab === 'liked' && sub === 'games';
+  const likedOther = tab === 'liked' && !likedGames;          // liked posts / comments / articles come from the API
+  const written = tab === 'posts' || tab === 'comments';      // what this user wrote themselves
   const lockedOut = tab === 'saved' && !me;
-  const filterOpts = ['matches', 'liked'].includes(tab)
+  const filterOpts = tab === 'matches' || likedGames
     ? ['League', ...uniq(matches, 'comp')].map((c, i) => [i ? c : '', c])
     : tab === 'reviews' ? [['', 'All ratings'], ['8', '8+ rating'], ['9', '9+ rating']] : null;
 
   // ---- list ----
   let list = null;
-  if (likedSub) {
-    list = <LikedContent key={tab} h={h} tab={tab} name={u.name} q={q} s={s} />;
+  if (written) {
+    list = <UserContent key={tab} h={h} mode="written" type={tab === 'posts' ? 'post' : 'comment'} name={u.name} q={q} s={s} />;
+  } else if (likedOther) {
+    list = <UserContent key={sub} h={h} mode="liked" type={{ posts: 'post', comments: 'comment', articles: 'article' }[sub]} name={u.name} q={q} s={s} />;
   } else if (lockedOut) {
     list = <p className="empty">Saved articles are private.</p>;
   } else {
@@ -154,7 +164,7 @@ function ProfilePage({ h, tab, u }) {
     if (tab === 'activity') {
       mode = 'activity';
       items = u.activity.filter(a => a.type !== 'onsite').map((a, i) => ({ key: i, d: a.min / 1440, x: `${ACT[a.type]?.[0] || ''} ${a.match ? label(a.match) : a.name || a.title || ''}`, node: <ActivityRow a={a} label={label} /> }));
-    } else if (['matches', 'liked'].includes(tab)) {
+    } else if (tab === 'matches' || likedGames) {
       mode = 'grid';
       items = ({ matches: u.watched, liked: u.liked })[tab].map(m => ({ key: m.id, d: daysOf(tab, m), x: label(m), f: m.comp, node: <MatchCard m={m} /> }));
     } else if (tab === 'reviews') {
@@ -213,12 +223,20 @@ function ProfilePage({ h, tab, u }) {
             <Link href={`/profile/${h}?tab=matches`} className={tab === 'matches' ? 'on' : ''}>Watched</Link>
             <Link href={`/profile/${h}?tab=liked`} className={tab === 'liked' ? 'on' : ''}>Liked</Link>
             <div className="pf-sep" role="separator" />
-            <Link href={`/profile/${h}?tab=likedposts`} className={tab === 'likedposts' ? 'on' : ''}>Posts</Link>
-            <Link href={`/profile/${h}?tab=likedcomments`} className={tab === 'likedcomments' ? 'on' : ''}>Comments</Link>
+            <Link href={`/profile/${h}?tab=posts`} className={tab === 'posts' ? 'on' : ''}>Posts</Link>
+            <Link href={`/profile/${h}?tab=comments`} className={tab === 'comments' ? 'on' : ''}>Comments</Link>
             <Link href={`/profile/${h}?tab=articles`} className={tab === 'articles' ? 'on' : ''}>Articles</Link>
             {me && <><div className="pf-sep" role="separator" /><Link href={`/profile/${h}?tab=saved`} className={`pf-saved${tab === 'saved' ? ' on' : ''}`}><span>Saved</span><em>{LOCK}Only you</em></Link></>}
           </nav>
           <section>
+            {tab === 'liked' && (
+              <div className="pf-seg" role="tablist" aria-label="What this user liked">
+                {LIKED_SEGS.map(([k, l]) => (
+                  <Link key={k} role="tab" aria-selected={sub === k} className={sub === k ? 'on' : ''} replace scroll={false}
+                    href={`/profile/${h}?tab=liked${k === 'games' ? '' : '&type=' + k}`}>{l}</Link>
+                ))}
+              </div>
+            )}
             <div className="pf-tools">
               <input type="search" placeholder="Search" aria-label="Search this page" value={q} onChange={e => setQ(e.target.value)} /><span className="sp" />
               {tab !== 'about' && filterOpts && (

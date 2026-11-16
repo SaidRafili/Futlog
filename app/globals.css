@@ -984,3 +984,10 @@ a.nav-write{margin-left:6px}                    /* "Write" now sits beside the n
   .pf-act li{padding:12px}
   .pcard h3{font-size:17px}
 }
+
+/* Liked tab: segmented switch between games / posts / comments / articles */
+.pf-seg{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;gap:4px;padding:4px;margin-bottom:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.pf-seg::-webkit-scrollbar{display:none}
+.pf-seg a{flex:none;padding:6px 16px;border-radius:7px;font-size:14px;color:var(--muted);white-space:nowrap}
+.pf-seg a:hover{color:var(--text);background:var(--panel-hover)}
+.pf-seg a.on{background:var(--accent-deep);color:#fff;font-weight:600}
