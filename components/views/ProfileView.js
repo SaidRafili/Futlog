@@ -139,8 +139,6 @@ function ProfilePage({ h, tab, sub, u }) {
   const me = !!session && h === session.handle;
   const [q, setQ] = useState(''), [f, setF] = useState(''), [s, setS] = useState('new');
 
-  useEffect(() => { document.title = `${u.name} (@${h}) · Futlog`; }, [u, h]);
-
   const stats = [['matches', u.watched.length, 'Watched'], ['liked', u.liked.length, 'Liked'], ['articles', u.arts.filter(a => !a.draft).length, 'Articles']];
   const likedGames = tab === 'liked' && sub === 'games';
   const likedOther = tab === 'liked' && !likedGames;          // liked posts / comments / articles come from the API

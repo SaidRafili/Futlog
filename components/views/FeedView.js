@@ -10,7 +10,6 @@ import { newSeed } from '@/lib/shuffle';
 
 export default function FeedView() {
   const d = useData();
-  useEffect(() => { document.title = 'Feed · Futlog'; }, []);
   if (d.status !== 'ready' || !d.meReady) return null;
   return <FeedPage />;
 }

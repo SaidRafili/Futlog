@@ -46,7 +46,6 @@ function Settings({ handle }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { document.title = 'Settings · Futlog'; }, []);
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setMsg(null); setFields(x => ({ ...x, [k]: undefined })); };
   const avatar = pending.avatar !== undefined ? pending.avatar : saved?.avatar ?? null;

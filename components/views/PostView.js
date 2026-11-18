@@ -19,7 +19,7 @@ export default function PostView() {
     fetch('/api/posts/' + encodeURIComponent(id), { cache: 'no-store' })
       .then(async r => { const j = await r.json().catch(() => ({})); if (r.status === 404) return { phase: 'missing' }; if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status); return { phase: 'ready', post: j.post }; })
       .catch(e => ({ phase: 'error', message: e.message }))
-      .then(s => { if (!dead) { setSt(s); document.title = s.post ? `${s.post.user.name}: “${(s.post.body || 'Picture').slice(0, 60)}” · Futlog` : 'Post · Futlog'; } });
+      .then(s => { if (!dead) setSt(s); });
     return () => { dead = true; };
   }, [id, d.meReady, who]);
 

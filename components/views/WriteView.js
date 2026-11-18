@@ -60,7 +60,6 @@ function Editor({ id }) {
   const [coverBroken, setCoverBroken] = useState(false);
   const coverInput = useRef(null), bodyInput = useRef(null), bodyArea = useRef(null);
 
-  useEffect(() => { document.title = (id ? 'Edit article' : 'New article') + ' · Futlog'; }, [id]);
   useEffect(() => {
     if (!id) return;
     let dead = false;

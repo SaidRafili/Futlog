@@ -58,8 +58,6 @@ export default function SearchView() {
   const [data, setData] = useState({}), [loading, setLoading] = useState(true), [err, setErr] = useState(''), [more, setMore] = useState(false);
   const [open, setOpen] = useState(() => new Set());
 
-  useEffect(() => { document.title = (q ? `${q} · ` : '') + 'Search · Futlog'; }, [q]);
-
   useEffect(() => {
     if (!d.meReady) return;
     const ctl = new AbortController();

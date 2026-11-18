@@ -53,7 +53,6 @@ function ArticlePage({ a }) {
   const progRef = useRef(null), commentsRef = useRef(null);
   const au = a.author;
 
-  useEffect(() => { document.title = `${a.title} · Futlog`; }, [a]);
   useEffect(() => {
     const onScroll = () => {
       const h = document.documentElement;

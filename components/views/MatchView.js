@@ -52,8 +52,6 @@ function MatchPage({ m }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [m.id, meReady, who]);
 
-  useEffect(() => { document.title = `${h.n} ${m.hs}–${m.as} ${a.n} · Futlog`; }, [h, a, m]);
-
   const full = COMPN[m.comp] || m.comp;
   const mine = stats?.mine || 0, avg = stats?.avg || 0;
   const shown = mine || Math.round(avg);
