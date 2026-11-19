@@ -352,3 +352,18 @@ CREATE TABLE IF NOT EXISTS venues (
 );
 ALTER TABLE venues ADD COLUMN IF NOT EXISTS photourl    VARCHAR(500) NOT NULL DEFAULT '';
 ALTER TABLE venues ADD COLUMN IF NOT EXISTS photocredit VARCHAR(255) NOT NULL DEFAULT '';
+
+-- ============================================================
+-- FIXTURE_EVENTS  (goals and cards of a match; filled by sync_espn.py; read by GET /api/matches/:id/events)
+-- event_id = fixtures.event_id (no FK, same reason as user_matches).  team_side = 'home' | 'away'.
+-- event_type = goal | penalty_goal | own_goal | yellow_card | second_yellow | red_card.  Optional: without it the match page shows goal totals.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS fixture_events (
+    event_id   VARCHAR(255),
+    team_side  VARCHAR(255),
+    minute     VARCHAR(255),
+    event_type VARCHAR(255),
+    player     VARCHAR(255),
+    assist     VARCHAR(255)
+);
+CREATE INDEX IF NOT EXISTS fixture_events_event_idx ON fixture_events (event_id);

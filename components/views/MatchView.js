@@ -122,13 +122,14 @@ function MatchPage({ m }) {
           <div className="more">
             <div className="mp-title"><h2>More info</h2></div>
             <dl><dt>Kick-off</dt><dd>{d.ko}</dd><dt>Attendance</dt><dd>{d.att}</dd><dt>Competition</dt><dd>{full}</dd></dl>
-            {/* the fixtures data has scores but no scorers / minutes, so show goals per team instead of a timeline */}
-            <ol className="goals">
-              {m.hs + m.as
-                ? goals.map(([t, n]) => <li key={t}><b>{n}</b><MiniBadge t={T[t]} />{n > 1 ? 'goals' : 'goal'}</li>)
-                : <li>No goals</li>}
-              {m.ph + m.pa ? <li><b>Pens</b>{m.ph}–{m.pa}</li> : null}
-            </ol>
+            {/* goals and cards come from the fixture_events table; without events show goals per team instead */}
+            <MatchEvents m={m} fallback={
+              <ol className="goals">
+                {m.hs + m.as
+                  ? goals.map(([t, n]) => <li key={t}><b>{n}</b><MiniBadge t={T[t]} />{n > 1 ? 'goals' : 'goal'}</li>)
+                  : <li>No goals</li>}
+                {m.ph + m.pa ? <li><b>Pens</b>{m.ph}–{m.pa}</li> : null}
+              </ol>} />
           </div>
         </aside>
 
@@ -146,6 +147,43 @@ function MatchPage({ m }) {
         </div>
       </section>
     </main>
+  );
+}
+
+// Goals and cards: GET /api/matches/:id/events (table fixture_events). Home events on the left, away on the right.
+const EV = {
+  goal: { icon: '⚽', label: '' }, penalty_goal: { icon: '⚽', label: 'pen.' }, own_goal: { icon: '⚽', label: 'o.g.', own: true },
+  yellow_card: { icon: '🟨', label: '' }, second_yellow: { icon: '🟨🟥', label: '' }, red_card: { icon: '🟥', label: '' }
+};
+function MatchEvents({ m, fallback }) {
+  const [events, setEvents] = useState(null);
+  useEffect(() => {
+    let dead = false;
+    fetch('/api/matches/' + m.id + '/events', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
+      .then(j => { if (!dead) setEvents(j?.events || []); }).catch(() => { if (!dead) setEvents([]); });
+    return () => { dead = true; };
+  }, [m.id]);
+  if (!events?.length) return fallback;
+  return (
+    <ol className="ev" aria-label="Goals and cards">
+      {events.map((e, i) => {
+        const t = EV[e.type] || { icon: '•', label: '' };
+        const body = (
+          <span className="ev-who">
+            <span className="ev-ic" aria-hidden="true">{t.icon}</span>
+            <b>{e.player || 'Unknown'}</b>{t.label ? <em> ({t.label})</em> : null}
+            {e.assist ? <small>assist: {e.assist}</small> : null}
+          </span>
+        );
+        return (
+          <li key={i} className={'ev-row ' + e.side}>
+            {e.side === 'home' ? body : <span />}
+            <time className="ev-min">{e.minute ? e.minute + "'" : ''}</time>
+            {e.side === 'away' ? body : <span />}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
