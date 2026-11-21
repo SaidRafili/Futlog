@@ -11,13 +11,13 @@ import { fetchProfile, fromApi } from '@/lib/profile';
 import { timeAgo } from '@/lib/util';
 import { daysAgo, hue, tAgo, uniq } from '@/lib/util';
 import { articlePath } from '@/lib/slug';
+import Photo from '../Photo';
 
 // cover = the article's banner from the database; without one the card keeps the striped gradient placeholder
 function PCard({ href, t, meta, d, a, b, cover }) {
-  const img = cover ? String(cover).trim().replace(/'/g, '%27').replace(/\(/g, '%28').replace(/\)/g, '%29') : '';
   return (
     <Link className="pcard" href={href}>
-      <div className={img ? 'pc-img has-cover' : 'pc-img'} role="img" aria-label="" style={img ? { '--a': a, '--b': b, backgroundImage: `url('${img}')` } : { '--a': a, '--b': b }} /><h3>{t}</h3>
+      <div className="pc-img" style={{ '--a': a, '--b': b }}><Photo src={cover} alt={t} width={480} height={105} sizes="(max-width: 700px) 100vw, 420px" /></div><h3>{t}</h3>
       <div className="pc-m"><span>{meta}</span><time>{daysAgo(Math.max(1, Math.round(d)))}</time></div>
     </Link>
   );
@@ -189,9 +189,7 @@ function ProfilePage({ h, tab, sub, u }) {
       : <p className="empty">{q || f ? 'Nothing matches your search or filter.' : tab === 'activity' ? `${u.name} has no activity yet.` : tab === 'saved' ? 'You have not saved any articles yet. Use the Save button on an article.' : tab === 'articles' && me ? 'You have not written an article yet. Use "Write article" above.' : `${u.name} has nothing here yet.`}</p>;
   }
 
-  const cover = u.banner
-    ? { backgroundImage: `url("${u.banner}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { '--h': u.hue ?? hue(h) };
+  const cover = u.banner ? undefined : { '--h': u.hue ?? hue(h) };
 
   useEffect(() => {      // phones: the section tabs scroll sideways, keep the active one in view (does not scroll the page)
     const n = document.querySelector('.pf-side'), a = n?.querySelector('a.on');
@@ -200,7 +198,10 @@ function ProfilePage({ h, tab, sub, u }) {
 
   return (
     <main id="profilePage">
-      <div className={`pf-cover${u.banner ? ' img' : ''}`} style={cover} />
+      <div className={`pf-cover${u.banner ? ' img' : ''}`} style={cover}>
+        {/* the banner is decoration (the name is right below it), but it is the big picture at the top of the page */}
+        {u.banner ? <Photo src={u.banner} width={1280} height={230} sizes="100vw" priority /> : null}
+      </div>
       <div className="pf-wrap">
         <header className="pf-head">
           <Avatar name={u.name} src={u.avatar} className="pf-av" />

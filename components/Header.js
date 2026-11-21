@@ -45,7 +45,7 @@ export default function Header() {
         <div className="acct" ref={box}>
           <button className="avatar-btn" aria-label="Account menu" aria-haspopup="menu" aria-expanded={menu} title={me.name} onClick={() => setMenu(m => !m)}>
             {me.avatar
-              ? <img src={me.avatar} alt="" />
+              ? <img src={me.avatar} alt="" width="25" height="25" decoding="async" />
               : <svg width="14" height="14" viewBox="0 0 24 24" fill="#1b1a3d"><circle cx="12" cy="8" r="4.5" /><path d="M3 21c0-5 4-7 9-7s9 2 9 7z" /></svg>}
           </button>
           {menu && (

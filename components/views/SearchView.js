@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useData } from '../DataProvider';
 import MatchCard from '../MatchCard';
 import PostCard from '../PostCard';
+import Photo from '../Photo';
 import { Avatar, FollowButton } from '../ui';
 import { highlightParts, tokens } from '@/lib/fold';
 import { searchMatches } from '@/lib/matchsearch';
@@ -37,7 +38,7 @@ function PersonRow({ p, words }) {
 function ArticleRow({ a, words }) {
   return (
     <Link className="sr-art" href={articlePath(a.id, a.title)}>
-      <div className="sr-thumb" role="img" aria-label="" style={a.cover ? { backgroundImage: `url('${a.cover}')` } : undefined}>{a.cover ? null : <span>{a.category.slice(0, 1)}</span>}</div>
+      <div className="sr-thumb"><span aria-hidden="true">{a.category.slice(0, 1)}</span><Photo src={a.cover} alt={a.title} width={240} height={168} sizes="(max-width: 560px) 88px, 120px" /></div>
       <div>
         <h3><Mark text={a.title} words={words} /></h3>
         <p className="sr-meta">{a.category} · by {a.author.name} · {a.readMinutes || 1} min read{a.publishedAt ? ' · ' + shortDate(a.publishedAt) : ''} · ♥ {a.likes} · 💬 {a.comments}</p>

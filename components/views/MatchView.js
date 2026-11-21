@@ -4,6 +4,7 @@ import { notFound, useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useData } from '../DataProvider';
 import CommentSection from '../Comments';
+import Photo from '../Photo';
 import PostCard from '../PostCard';
 import PostComposer from '../PostComposer';
 import { Crest, MiniBadge } from '../ui';
@@ -88,14 +89,16 @@ function MatchPage({ m }) {
                   : <><span className="red">Only</span> meeting on record</>}</div>
               </div>
               <div className="tk-stub">
-                {m.leagueLogo ? <img src={m.leagueLogo} alt="" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="10" /><path d="M12 7l4 3-1.5 5h-5L8 10z" /></svg>}
+                {m.leagueLogo ? <img src={m.leagueLogo} alt="" width="34" height="34" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="10" /><path d="M12 7l4 3-1.5 5h-5L8 10z" /></svg>}
                 <span>{full}</span>
                 <i aria-hidden="true" />
               </div>
             </div>
           </div>
         </div>
-        <div className="mp-photo" role="img" aria-label="Match photo" style={{ '--a': h.c, '--b': a.c, backgroundImage: m.img ? `linear-gradient(to top,rgba(0,0,0,.4),transparent 50%),url('${m.img}')` : undefined }}>
+        <div className={m.img ? 'mp-photo has-img' : 'mp-photo'} style={{ '--a': h.c, '--b': a.c }}>
+          {/* the big picture at the top of the page: the likely Largest Contentful Paint element */}
+          {m.img ? <Photo src={m.img} alt={`${d.venue}, where ${h.n} played ${a.n}`} width={1280} height={720} sizes="(max-width: 900px) 100vw, 60vw" priority /> : null}
           {m.img && m.imgCredit ? <small className="mp-credit">Photo: {m.imgCredit}</small> : null}
         </div>
       </section>
@@ -205,7 +208,7 @@ function MatchArticles({ m, active, onCount }) {
     <div className="mp-arts">
       {list.map(a => (
         <Link key={a.id} className="mp-art" href={articlePath(a.id, a.title)}>
-          <div className="mp-art-img" role="img" aria-label="" style={a.cover ? { backgroundImage: `url('${a.cover}')` } : undefined}>{a.cover ? null : <span>{a.category.slice(0, 1)}</span>}</div>
+          <div className="mp-art-img"><span aria-hidden="true">{a.category.slice(0, 1)}</span><Photo src={a.cover} alt={a.title} width={240} height={168} sizes="120px" /></div>
           <div className="mp-art-t">
             <h3>{a.title}</h3>
             <p>{a.category} · {a.readMinutes || 1} min read · by {a.author.name}</p>

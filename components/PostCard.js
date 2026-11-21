@@ -68,7 +68,7 @@ export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onR
           </form>
         ) : p.body ? <p className="p-text"><PostText text={p.body} mark={mark} /></p> : null}
         {err && <p className="st-err" role="alert">{err}</p>}
-        {compact ? (pic ? <div className="p-crop"><img src={pic.url} alt={pic.alt || ''} loading="lazy" decoding="async" />{p.images.length > 1 ? <span>+{p.images.length - 1}</span> : null}</div> : null) : <PostImages images={p.images} />}
+        {compact ? (pic ? <div className="p-crop"><img src={pic.url} alt={pic.alt || ''} width={pic.w || 300} height={pic.h || 62} loading="lazy" decoding="async" />{p.images.length > 1 ? <span>+{p.images.length - 1}</span> : null}</div> : null) : <PostImages images={p.images} />}
         {m ? <FeedMatch m={m} /> : null}
         <div className="p-acts">
           <LikeButton type="post" id={p.id} count={p.likes} liked={p.liked}>

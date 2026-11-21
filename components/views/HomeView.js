@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useData } from '../DataProvider';
 import MatchCard from '../MatchCard';
+import Photo from '../Photo';
 import PostCard from '../PostCard';
 import { Avatar, LikeButton, MiniBadge } from '../ui';
 import { profileHref, timeAgo } from '@/lib/util';
@@ -118,7 +119,7 @@ export default function HomeView() {
             <div className="articles">
               {featured && (
                 <Link className="featured" href={articlePath(featured.id, featured.title)}>
-                  <div className="thumb" role="img" aria-label="Article photo" style={featured.cover ? { backgroundImage: `url('${featured.cover}')` } : undefined} />
+                  <div className="thumb"><Photo src={featured.cover} alt={featured.title} width={560} height={300} sizes="(max-width: 560px) 100vw, 280px" /></div>
                   <div><h3>{featured.title}</h3><p>{meta(featured)}</p></div>
                 </Link>
               )}

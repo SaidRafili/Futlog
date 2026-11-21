@@ -9,14 +9,14 @@ import { sendJSON } from '@/lib/profile';
 export function Crest({ t, big }) {
   const x = big ? ' big' : '';
   return t.l
-    ? <b className={`crest logo${x}`}><img src={t.l} alt={t.s} loading="lazy" /></b>
+    ? <b className={`crest logo${x}`}><img src={t.l} alt={t.s} width={big ? 60 : 25} height={big ? 60 : 25} loading="lazy" decoding="async" /></b>
     : <b className={`crest${x}`}>{t.s}</b>;
 }
 
 // Small team badge used inside score chips (was mb()).
 export function MiniBadge({ t }) {
   return t.l
-    ? <i className="tlogo"><img src={t.l} alt={t.s} loading="lazy" /></i>
+    ? <i className="tlogo"><img src={t.l} alt={t.s} width="18" height="18" loading="lazy" decoding="async" /></i>
     : <i style={{ background: t.c, color: t.t }}>{t.s}</i>;
 }
 
@@ -69,7 +69,7 @@ export function ShareButton({ icon, className, href }) {
 export function Avatar({ name, src, className = 'c-avatar', size }) {
   const st = size ? { width: size, height: size } : undefined;
   return src
-    ? <img className={className} src={src} alt="" style={{ ...st, objectFit: 'cover' }} />
+    ? <img className={className} src={src} alt="" width={size || 40} height={size || 40} loading="lazy" decoding="async" style={{ ...st, objectFit: 'cover' }} />
     : <span className={className} style={{ ...st, background: avatarBg(name, 45, 38) }}>{name[0]}</span>;
 }
 

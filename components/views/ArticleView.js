@@ -10,6 +10,7 @@ import { sendJSON } from '@/lib/profile';
 import { fmt, shortDate } from '@/lib/util';
 import { renderMarkdown } from '@/lib/markdown';
 import { articlePath, parseId } from '@/lib/slug';
+import Photo from '../Photo';
 
 const path = d => <svg viewBox="0 0 24 24"><path d={d} /></svg>;
 const ARI = {
@@ -84,7 +85,10 @@ function ArticlePage({ a }) {
   return (
     <main id="articlePage">
       <div className="ar-progress" ref={progRef} />
-      <div className="ar-hero" role="img" aria-label="Article cover photo" style={{ backgroundImage: a.cover ? `url('${a.cover}')` : undefined }} />
+      <div className={a.cover ? 'ar-hero has-img' : 'ar-hero'}>
+        {/* the cover is the big picture at the top of the page: the likely Largest Contentful Paint element */}
+        {a.cover ? <Photo src={a.cover} alt={a.title} width={1600} height={288} sizes="100vw" priority /> : null}
+      </div>
       <div className="ar-wrap">
         <article className="ar-main">
           {draft && <p className="pf-note">This is a draft. Only you can see it. <Link href={`/write/${a.id}`}>Edit and publish it</Link></p>}
@@ -108,7 +112,7 @@ function ArticlePage({ a }) {
         <aside className="ar-side">
           <div className="ar-author">
             <Link className="ar-av" href={`/profile/${au.handle}`} style={{ background: au.avatar ? undefined : 'var(--accent-deep)' }}>
-              {au.avatar ? <img src={au.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }} /> : au.name[0]}
+              {au.avatar ? <img src={au.avatar} alt="" width="48" height="48" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }} /> : au.name[0]}
             </Link><div className="ar-bar" />
             <div>
               <h3><Link href={`/profile/${au.handle}`}>{au.name}</Link></h3><div className="handle">@{au.handle}</div>{au.bio && <p>{au.bio}</p>}
