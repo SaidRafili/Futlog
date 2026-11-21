@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useParams, useSearchParams } from 'next/navigation';
+import { notFound, useParams, useSearchParams } from 'next/navigation';
 import { Fragment, useEffect, useState } from 'react';
 import { useData } from '../DataProvider';
 import MatchCard from '../MatchCard';
@@ -52,7 +52,7 @@ function ProfileLoader({ h, tab, sub }) {
   }, [h, byId, T, me]);
 
   if (st.phase === 'loading') return <main id="profilePage"><div className="pf-cover" style={{ '--h': hue(h) }} /></main>;
-  if (st.phase === 'missing') return <main id="profilePage"><div className="pf-cover" style={{ '--h': hue(h) }} /><div className="pf-wrap"><p className="empty">There is no user called @{h}. <Link href="/" style={{ color: 'var(--accent)' }}>Back to home</Link></p></div></main>;
+  if (st.phase === 'missing') notFound();
   if (st.phase === 'error') return <main id="profilePage"><div className="pf-cover" style={{ '--h': hue(h) }} /><div className="pf-wrap"><p className="pf-note" role="alert">Could not load this profile: {st.error}</p></div></main>;
   return <ProfilePage key={h + '|' + tab + '|' + sub} h={h} tab={tab} sub={sub} u={st.u} />; // filters/sort reset when the profile or tab changes
 }

@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useData } from '../DataProvider';
 import MatchCard from '../MatchCard';
@@ -43,7 +43,7 @@ export default function ArticleView() {
   }, [id, d.meReady, who]);
 
   if (d.status !== 'ready' || st.phase === 'loading') return <main id="articlePage"><p className="empty" style={{ textAlign: 'center' }}>Loading…</p></main>;
-  if (st.phase === 'missing') return <main id="articlePage"><p className="empty" style={{ textAlign: 'center' }}>This article does not exist, or it is a draft. <Link href="/" style={{ color: 'var(--accent)' }}>Back to home</Link></p></main>;
+  if (st.phase === 'missing') notFound();           // deleted after the page loaded, or reached by client-side navigation
   if (st.phase === 'error') return <main id="articlePage"><p className="pf-note" role="alert">Could not load the article: {st.message}</p></main>;
   return <ArticlePage key={st.a.id} a={st.a} />;
 }

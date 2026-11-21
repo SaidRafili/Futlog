@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useData } from '../DataProvider';
 import CommentSection from '../Comments';
@@ -20,11 +20,10 @@ const IC = {
 
 export default function MatchView() {
   const d = useData();
-  const router = useRouter();
   const id = +parseId(useParams().id);
   const m = d.status === 'ready' ? d.byId(id) : null;
 
-  useEffect(() => { if (d.status === 'ready' && !m) router.replace('/'); }, [d.status, m, router]);
+  if (d.status === 'ready' && !m) notFound();       // the server already answers 404 for unknown matches; this covers client-side navigation
   if (!m) return null;
   return <MatchPage key={m.id} m={m} />;
 }

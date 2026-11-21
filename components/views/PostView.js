@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useData } from '../DataProvider';
 import PostCard from '../PostCard';
@@ -27,7 +27,7 @@ export default function PostView() {
   if (d.status !== 'ready' || !d.meReady) return null;
   const back = <p className="pv-back"><Link href="/feed">← Back to the feed</Link></p>;
   if (st.phase === 'loading') return <main className="fd-wrap pv"><p className="empty">Loading…</p></main>;
-  if (st.phase === 'missing') return <main className="fd-wrap pv"><div>{back}<p className="empty">This post does not exist any more. It may have been deleted.</p></div></main>;
+  if (st.phase === 'missing') notFound();
   if (st.phase === 'error') return <main className="fd-wrap pv"><div>{back}<p className="pf-note" role="alert">Could not load this post: {st.message}</p></div></main>;
   const p = st.post;
   return (
