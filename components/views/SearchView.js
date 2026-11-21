@@ -54,6 +54,13 @@ export default function SearchView() {
   const who = d.me?.handle || '';
   const words = useMemo(() => tokens(q), [q]);
 
+  // put the searched words in the browser tab title as soon as a search is entered
+  useEffect(() => {
+    const prev = document.title;
+    document.title = q.trim() ? `${q.trim()} · Search · Futlog` : 'Search · Futlog';
+    return () => { document.title = prev; };
+  }, [q]);
+
   // people / articles / posts come from the server; `data[type] = { items, total }`, counts for the other tabs come along with it
   const [data, setData] = useState({}), [loading, setLoading] = useState(true), [err, setErr] = useState(''), [more, setMore] = useState(false);
   const [open, setOpen] = useState(() => new Set());

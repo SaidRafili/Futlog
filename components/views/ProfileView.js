@@ -11,10 +11,12 @@ import { fetchProfile, fromApi } from '@/lib/profile';
 import { timeAgo } from '@/lib/util';
 import { daysAgo, hue, tAgo, uniq } from '@/lib/util';
 
-function PCard({ href, t, meta, d, a, b }) {
+// cover = the article's banner from the database; without one the card keeps the striped gradient placeholder
+function PCard({ href, t, meta, d, a, b, cover }) {
+  const img = cover ? String(cover).trim().replace(/'/g, '%27').replace(/\(/g, '%28').replace(/\)/g, '%29') : '';
   return (
     <Link className="pcard" href={href}>
-      <div className="pc-img" style={{ '--a': a, '--b': b }} /><h3>{t}</h3>
+      <div className={img ? 'pc-img has-cover' : 'pc-img'} role="img" aria-label="" style={img ? { '--a': a, '--b': b, backgroundImage: `url('${img}')` } : { '--a': a, '--b': b }} /><h3>{t}</h3>
       <div className="pc-m"><span>{meta}</span><time>{daysAgo(Math.max(1, Math.round(d)))}</time></div>
     </Link>
   );
@@ -129,7 +131,7 @@ function UserContent({ h, mode, type, name, q, s }) {
     );
   })}</div>;
   return <div className="pf-cards">{items.map(a => (
-    <PCard key={a.id} href={`/article/${a.id}`} t={a.title} meta={`${a.category} · by ${a.author.name}`} d={Math.max(1, (Date.now() - new Date(a.publishedAt || a.updatedAt)) / 864e5)} a={`hsl(${hue(a.title)} 50% 35%)`} b={`hsl(${hue(a.title) + 60} 50% 25%)`} />
+    <PCard key={a.id} cover={a.cover} href={`/article/${a.id}`} t={a.title} meta={`${a.category} · by ${a.author.name}`} d={Math.max(1, (Date.now() - new Date(a.publishedAt || a.updatedAt)) / 864e5)} a={`hsl(${hue(a.title)} 50% 35%)`} b={`hsl(${hue(a.title) + 60} 50% 25%)`} />
   ))}</div>;
 }
 
@@ -170,7 +172,7 @@ function ProfilePage({ h, tab, sub, u }) {
         node: <PCard href={`/match/${v.m.id}`} t={v.t} meta={`${T[v.m.h].n} ${v.m.hs}–${v.m.as} ${T[v.m.a].n} · ${v.r}/10`} d={v.d} a={T[v.m.h].c} b={T[v.m.a].c} /> }));
     } else if (tab === 'articles' || tab === 'saved') {
       items = (tab === 'saved' ? u.saved : u.arts).map(a => ({ key: a.id, d: a.d, x: a.t,
-        node: <div className="pc-wrap"><PCard href={`/article/${a.id}`} t={a.t} meta={a.m} d={a.d} a={`hsl(${hue(a.t)} 50% 35%)`} b={`hsl(${hue(a.t) + 60} 50% 25%)`} />
+        node: <div className="pc-wrap"><PCard cover={a.cover} href={`/article/${a.id}`} t={a.t} meta={a.m} d={a.d} a={`hsl(${hue(a.t)} 50% 35%)`} b={`hsl(${hue(a.t) + 60} 50% 25%)`} />
           {me && tab === 'articles' && <Link className="pc-edit" href={`/write/${a.id}`}>Edit</Link>}</div> }));
     } else { // followers | following
       mode = 'users';

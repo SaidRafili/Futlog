@@ -36,7 +36,7 @@ function FeedPage() {
   useEffect(() => { load(); }, [load, who]);
 
   useEffect(() => {      // "Who to follow": people from the users table that you do not follow yet
-    fetch('/api/users?suggest=1&limit=5', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => setSug(j?.users || [])).catch(() => {});
+    fetch('/api/users?suggest=1&random=1&limit=5', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => setSug(j?.users || [])).catch(() => {});
   }, [who]);
 
   const list = (posts || []).filter(p => !fm || p.matchId === fm);

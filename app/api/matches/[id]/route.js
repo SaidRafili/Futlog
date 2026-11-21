@@ -11,6 +11,8 @@ async function stats(matchId, meId) {
     `SELECT (SELECT count(*)::int FROM user_matches WHERE match_id = $1 AND kind = 'watched') AS watched,
             (SELECT count(*)::int FROM user_matches WHERE match_id = $1 AND kind = 'liked')   AS liked,
             (SELECT count(*)::int FROM comments WHERE target_type = 'match' AND target_id = $1) AS comments,
+            (SELECT count(*)::int FROM article_matches am JOIN articles a ON a.article_id = am.article_id WHERE am.match_id = $1 AND a.status = 'published') AS articles,
+            (SELECT count(*)::int FROM posts WHERE match_id = $1) AS posts,
             (SELECT count(*)::int FROM reviews WHERE match_id = $1) AS reviews,
             (SELECT count(*)::int FROM match_ratings WHERE match_id = $1) AS ratings,
             (SELECT round(avg(rating)::numeric, 2)::float FROM match_ratings WHERE match_id = $1) AS avg,

@@ -38,7 +38,7 @@ function MatchPage({ m }) {
 
   // counts, average rating and your own rating: GET /api/matches/:id (nothing here is made up)
   const [stats, setStats] = useState(null);
-  const [ccount, setCcount] = useState(null);
+  const [ccount, setCcount] = useState(null), [acount, setAcount] = useState(null), [pcount, setPcount] = useState(null);   // live counts once a tab has loaded
   const base = useRef({ watched: false, liked: false });
   useEffect(() => {
     if (!meReady) return;
@@ -135,15 +135,15 @@ function MatchPage({ m }) {
 
         <div className="mp-main">
           <div className="tabs" ref={tabsRef} role="tablist">
-            {['comments', 'articles', 'posts'].map(t => (
-              <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t}</button>
+            {[['comments', ccount ?? stats?.comments], ['articles', acount ?? stats?.articles], ['posts', pcount ?? stats?.posts]].map(([t, n]) => (
+              <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t}{n == null ? null : <span className="tab-count">{fmt(n)}</span>}</button>
             ))}
           </div>
           <div hidden={tab !== 'comments'}>
             <CommentSection type="match" id={m.id} placeholder="Add a comment on this match" onCount={setCcount} />
           </div>
-          <div hidden={tab !== 'articles'}><MatchArticles m={m} active={tab === 'articles'} /></div>
-          <div hidden={tab !== 'posts'}><MatchPosts m={m} active={tab === 'posts'} /></div>
+          <div hidden={tab !== 'articles'}><MatchArticles m={m} active={tab === 'articles'} onCount={setAcount} /></div>
+          <div hidden={tab !== 'posts'}><MatchPosts m={m} active={tab === 'posts'} onCount={setPcount} /></div>
         </div>
       </section>
     </main>
@@ -188,7 +188,7 @@ function MatchEvents({ m, fallback }) {
 }
 
 // Articles tagged with this match: GET /api/articles?matchId=
-function MatchArticles({ m, active }) {
+function MatchArticles({ m, active, onCount }) {
   const { meReady, me } = useData();
   const [list, setList] = useState(null), [error, setError] = useState('');
   useEffect(() => {
@@ -197,6 +197,7 @@ function MatchArticles({ m, active }) {
       .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status); setList(j.articles); })
       .catch(e => { setError(e.message); setList([]); });
   }, [active, meReady, m.id, list, me]);
+  useEffect(() => { if (list) onCount?.(list.length); }, [list, onCount]);
   if (error) return <p className="st-err c-err" role="alert">Could not load articles: {error}</p>;
   if (!list) return <p className="empty">Loading…</p>;
   if (!list.length) return <p className="empty">No articles about this match yet. <Link href="/write" style={{ color: 'var(--accent)' }}>Write the first one.</Link></p>;
@@ -217,7 +218,7 @@ function MatchArticles({ m, active }) {
 }
 
 // Feed posts that tag this match: GET /api/posts?matchId=
-function MatchPosts({ m, active }) {
+function MatchPosts({ m, active, onCount }) {
   const { meReady, me, byId } = useData();
   const [posts, setPosts] = useState(null), [error, setError] = useState(''), [open, setOpen] = useState(() => new Set());
   const who = me?.handle || '';
@@ -225,6 +226,7 @@ function MatchPosts({ m, active }) {
     .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status); setPosts(j.posts); setError(''); })
     .catch(e => { setError(e.message); setPosts(p => p || []); }), [m.id]);
   useEffect(() => { if (active && meReady) load(); }, [active, meReady, who, load]);
+  useEffect(() => { if (posts) onCount?.(posts.length); }, [posts, onCount]);
   const toggle = id => setOpen(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const edit = async (p, body) => { const { post } = await sendJSON('/api/posts/' + p.id, 'PUT', { body }); setPosts(l => l.map(x => x.id === p.id ? post : x)); };
   const remove = async p => { await sendJSON('/api/posts/' + p.id, 'DELETE', {}); setPosts(l => l.filter(x => x.id !== p.id)); };

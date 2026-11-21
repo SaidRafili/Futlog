@@ -34,7 +34,7 @@ export async function GET(req, { params }) {
               WHERE f.followee_id = $1 ORDER BY f.created_at DESC LIMIT ${LIMIT}`, [id]),
       query(`SELECT review_id AS id, match_id, title, rating, created_at AS at FROM reviews WHERE user_id = $1 ORDER BY created_at DESC LIMIT ${LIMIT}`, [id]),
       // the owner also sees their drafts
-      query(`SELECT article_id AS id, title, category, read_minutes, status, COALESCE(published_at, updated_at) AS at,
+      query(`SELECT article_id AS id, title, category, read_minutes, status, cover_image_url AS cover, COALESCE(published_at, updated_at) AS at,
                     (SELECT count(*)::int FROM likes l WHERE l.target_type = 'article' AND l.target_id = article_id) AS likes
                FROM articles WHERE author_id = $1 AND (status = 'published' OR $2::boolean) ORDER BY COALESCE(published_at, updated_at) DESC LIMIT ${LIMIT}`, [id, isOwner]),
       query(`SELECT a.type, a.match_id, a.ref_id, a.title, a.rating, a.created_at AS at, t.handle AS target_handle, t.display_name AS target_name
@@ -45,7 +45,7 @@ export async function GET(req, { params }) {
                     (SELECT count(*)::int FROM comments WHERE user_id = $1) AS comments`, [id]),
       // bookmarks are private: only the owner gets them
       isOwner
-        ? query(`SELECT a.article_id AS id, a.title, a.category, a.read_minutes, s.created_at AS at, u.handle AS author_handle, u.display_name AS author_name
+        ? query(`SELECT a.article_id AS id, a.title, a.category, a.read_minutes, a.cover_image_url AS cover, s.created_at AS at, u.handle AS author_handle, u.display_name AS author_name
                    FROM article_saves s JOIN articles a ON a.article_id = s.article_id AND a.status = 'published' JOIN users u ON u.user_id = a.author_id
                   WHERE s.user_id = $1 ORDER BY s.created_at DESC LIMIT ${LIMIT}`, [id])
         : Promise.resolve({ rows: [] }),
@@ -57,8 +57,8 @@ export async function GET(req, { params }) {
       watched: by('watched'), liked: by('liked'), onsite: by('onsite'),
       reviews: reviews.rows.map(r => ({ id: r.id, matchId: r.match_id, title: r.title, rating: r.rating, at: r.at })),
       followers: followers.rows.map(person), following: following.rows.map(person),
-      articles: articles.rows.map(r => ({ id: r.id, title: r.title, category: r.category, readMinutes: r.read_minutes, at: r.at, status: r.status, likes: r.likes })),
-      saved: saved.rows.map(r => ({ id: r.id, title: r.title, category: r.category, readMinutes: r.read_minutes, at: r.at, authorHandle: r.author_handle, authorName: r.author_name })),
+      articles: articles.rows.map(r => ({ id: r.id, title: r.title, category: r.category, readMinutes: r.read_minutes, cover: r.cover, at: r.at, status: r.status, likes: r.likes })),
+      saved: saved.rows.map(r => ({ id: r.id, title: r.title, category: r.category, readMinutes: r.read_minutes, cover: r.cover, at: r.at, authorHandle: r.author_handle, authorName: r.author_name })),
       activity: activity.rows.map(r => ({ type: r.type, matchId: r.match_id, refId: r.ref_id, title: r.title, rating: r.rating, at: r.at, handle: r.target_handle, name: r.target_name })),
     });
   } catch (err) { return dbError(err); }
