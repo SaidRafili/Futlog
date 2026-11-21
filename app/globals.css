@@ -1060,7 +1060,8 @@ a.nav-write{margin-left:6px}                    /* "Write" now sits beside the n
 }
 
 /* grids: 1fr lets long text or wide content stretch a column past the screen; minmax(0,1fr) does not */
-.articles,.ar-matches,.comments,.mp-comments,.reviews{grid-template-columns:repeat(2,minmax(0,1fr))}
+.articles,.ar-matches,.reviews{grid-template-columns:repeat(2,minmax(0,1fr))}
+.comments,.mp-comments{grid-template-columns: repeat(4,minmax(0,1fr))}
 @media (max-width:900px){.reviews,.mp-comments{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:760px){.articles,.comments{grid-template-columns:minmax(0,1fr)}}
 
