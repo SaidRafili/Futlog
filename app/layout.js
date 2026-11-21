@@ -4,10 +4,16 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AuthModal from '@/components/AuthModal';
 import { Analytics } from '@vercel/analytics/next';
+import { siteUrl } from '@/lib/siteurl';
 
+const DESC = 'Log, rate and revisit the football matches you watch.';
 export const metadata = {
+  metadataBase: siteUrl(),          // makes every relative og:image / canonical link absolute
   title: 'Futlog',
-  description: 'Log, rate and revisit the football matches you watch.',
+  description: DESC,
+  // site-wide defaults; each page's generateMetadata (lib/meta.js) overrides them with its own title, text and picture
+  openGraph: { siteName: 'Futlog', type: 'website', title: 'Futlog', description: DESC, images: [{ url: '/og', width: 1200, height: 630, alt: 'Futlog' }] },
+  twitter: { card: 'summary_large_image', title: 'Futlog', description: DESC, images: ['/og'] },
   // Icons come from the file conventions in /app: icon.png, apple-icon.png and favicon.ico (Next adds the <link> tags itself),
   // plus app/manifest.js for "add to home screen".
 };
