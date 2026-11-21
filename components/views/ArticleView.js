@@ -9,6 +9,7 @@ import { FollowButton, LikeButton, ShareButton } from '../ui';
 import { sendJSON } from '@/lib/profile';
 import { fmt, shortDate } from '@/lib/util';
 import { renderMarkdown } from '@/lib/markdown';
+import { articlePath, parseId } from '@/lib/slug';
 
 const path = d => <svg viewBox="0 0 24 24"><path d={d} /></svg>;
 const ARI = {
@@ -22,7 +23,7 @@ const ARI = {
 // Loads one article (+ whether you liked / saved it) from PostgreSQL: GET /api/articles/:id
 export default function ArticleView() {
   const d = useData();
-  const id = useParams().id;
+  const id = parseId(useParams().id) || 'x';
   const [st, setSt] = useState({ phase: 'loading' });
   const who = d.me?.handle || '';
 
@@ -99,7 +100,7 @@ function ArticlePage({ a }) {
           {more.length > 0 && (
             <section className="ar-more">
               <div className="sec-head"><h2>More to read</h2></div>
-              <div className="article-list">{more.map(x => <Link key={x.id} href={`/article/${x.id}`}><b>{x.title}</b><span>{x.category} · {x.readMinutes || 1} min read</span></Link>)}</div>
+              <div className="article-list">{more.map(x => <Link key={x.id} href={articlePath(x.id, x.title)}><b>{x.title}</b><span>{x.category} · {x.readMinutes || 1} min read</span></Link>)}</div>
             </section>
           )}
         </article>

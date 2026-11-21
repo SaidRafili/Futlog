@@ -9,6 +9,7 @@ import { Avatar, LikeButton, MiniBadge, ShareButton } from './ui';
 import { richParts } from '@/lib/richtext';
 import { highlightParts } from '@/lib/fold';
 import { profileHref, timeAgo } from '@/lib/util';
+import { postPath } from '@/lib/slug';
 
 const ico = d => <svg width="15" height="15" viewBox="0 0 24 24"><path d={d} /></svg>;
 export const ICO = {
@@ -28,10 +29,10 @@ export function PostText({ text, mark }) {
 }
 
 export function FeedMatch({ m }) {
-  const { T, label } = useData();
+  const { T, label, mhref } = useData();
   const h = T[m.h], a = T[m.a];
   return (
-    <Link className="p-match" href={`/match/${m.id}`} style={{ '--a': h.c, '--b': a.c }} aria-label={label(m)}>
+    <Link className="p-match" href={mhref(m)} style={{ '--a': h.c, '--b': a.c }} aria-label={label(m)}>
       <span className="mini"><MiniBadge t={h} />{m.hs}–{m.as}<MiniBadge t={a} /></span>
       <span>{[m.comp, m.stage, m.season].filter(Boolean).join(' · ')}</span>
     </Link>
@@ -51,7 +52,7 @@ export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onR
     try { await onEdit(p, t); setEditing(false); setErr(''); } catch (x) { setErr(x.message); }
   };
   const del = async () => { try { await onDelete(p); } catch (x) { setErr(x.message); setConfirm(false); } };
-  const href = `/post/${p.id}`;
+  const href = postPath(p.id, p.body);
   const router = useRouter();
   const go = e => { if (compact && !e.defaultPrevented && !e.target.closest('a,button,input,textarea,form')) router.push(href); };
   const pic = compact && p.images?.[0];

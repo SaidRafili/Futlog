@@ -6,6 +6,7 @@ import { useData } from './DataProvider';
 import { Avatar } from './ui';
 import { searchTeams } from '@/lib/matchsearch';
 import { profileHref } from '@/lib/util';
+import { articlePath } from '@/lib/slug';
 
 const RECENT_KEY = 'futlog_recent_searches';
 const readRecent = () => { try { const a = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => typeof x === 'string').slice(0, 6) : []; } catch { return []; } };
@@ -48,7 +49,7 @@ export default function SearchBox() {
     return [
       ...teams.map(t => ({ key: 't' + t.id, group: 'Teams', href: href(t.n, 'matches'), label: t.n, kind: 'team', t })),
       ...(fresh ? remote.people.map(p => ({ key: 'p' + p.handle, group: 'People', href: profileHref(p.handle), label: p.name, sub: '@' + p.handle, kind: 'person', p })) : []),
-      ...(fresh ? remote.articles.map(a => ({ key: 'a' + a.id, group: 'Articles', href: `/article/${a.id}`, label: a.title, sub: `${a.category} · ${a.author}`, kind: 'article' })) : []),
+      ...(fresh ? remote.articles.map(a => ({ key: 'a' + a.id, group: 'Articles', href: articlePath(a.id, a.title), label: a.title, sub: `${a.category} · ${a.author}`, kind: 'article' })) : []),
     ];
   }, [q, recent, teams, remote, fresh]);
   useEffect(() => setAct(-1), [rows.length, q]);

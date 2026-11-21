@@ -6,6 +6,7 @@ import { useData } from '../DataProvider';
 import { CATEGORIES } from '@/lib/consts';
 import { sendJSON } from '@/lib/profile';
 import { renderMarkdown } from '@/lib/markdown';   // same renderer as the article page, so the preview matches what readers see
+import { articlePath } from '@/lib/slug';
 
 const BLANK = { title: '', category: CATEGORIES[0], cover: '', body: '', matchIds: [] };   // new articles start on the first fixed category
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -124,7 +125,7 @@ function Editor({ id }) {
       const body = { ...f, cover: f.cover.trim() || null, status };
       const { article } = art ? await sendJSON('/api/articles/' + art.id, 'PUT', body) : await sendJSON('/api/articles', 'POST', body);
       setArt(article); setF(toForm(article));
-      if (status === 'published') { router.push('/article/' + article.id); return; }
+      if (status === 'published') { router.push(articlePath(article.id, article.title)); return; }
       if (!id) router.replace('/write/' + article.id);
       setMsg({ text: art?.status === 'published' ? 'Taken offline and saved as a draft.' : 'Draft saved.' });
     } catch (e) { setFields(e.fields || {}); setMsg({ bad: true, text: e.fields ? 'Fix the highlighted fields and try again.' : e.message }); }
@@ -149,7 +150,7 @@ function Editor({ id }) {
   return (
     <main className="settings">
       <div className="st-top"><h1>{art ? 'Edit article' : 'New article'}{art && <span className={`badge ${published ? 'pub' : ''}`}>{published ? 'Published' : 'Draft'}</span>}</h1>
-        {art && <Link href={`/article/${art.id}`}>View article →</Link>}</div>
+        {art && <Link href={articlePath(art.id, art.title)}>View article →</Link>}</div>
 
       <form onSubmit={e => { e.preventDefault(); save(published ? 'published' : 'draft'); }} noValidate>
         <section className="st-card">

@@ -10,6 +10,7 @@ import { PTABS, SORTS } from '@/lib/consts';
 import { fetchProfile, fromApi } from '@/lib/profile';
 import { timeAgo } from '@/lib/util';
 import { daysAgo, hue, tAgo, uniq } from '@/lib/util';
+import { articlePath } from '@/lib/slug';
 
 // cover = the article's banner from the database; without one the card keeps the striped gradient placeholder
 function PCard({ href, t, meta, d, a, b, cover }) {
@@ -73,12 +74,12 @@ const ICON = {
   chat: <path d="M4 4h16v12H9l-5 4z" />,
 };
 
-function ActivityRow({ a, label }) {
+function ActivityRow({ a, label, mhref }) {
   const [verb, icon] = ACT[a.type] || ['', 'eye'];
   let what = null;
-  if (a.match) what = <Link href={`/match/${a.match.id}`}>{label(a.match)}</Link>;
+  if (a.match) what = <Link href={mhref(a.match)}>{label(a.match)}</Link>;
   if (a.type === 'follow') what = <Link href={`/profile/${a.handle}`}>{a.name || a.handle}</Link>;
-  if (a.type === 'article') what = <Link href={`/article/${a.refId}`}>{a.title}</Link>;
+  if (a.type === 'article') what = <Link href={articlePath(a.refId, a.title)}>{a.title}</Link>;
   return (
     <li>
       <span className={`act-ic t-${a.type}`}><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">{ICON[icon]}</svg></span>
@@ -94,7 +95,7 @@ function ActivityRow({ a, label }) {
 //   mode 'written': what the user wrote themselves (Posts and Comments tabs)   -> /api/users/:h/written
 //   mode 'liked'  : what the user liked (segments of the Liked tab)             -> /api/users/:h/likes
 function UserContent({ h, mode, type, name, q, s }) {
-  const { byId, label } = useData();
+  const { byId, label, mhref } = useData();
   const [st, setSt] = useState({ phase: 'loading' }), [open, setOpen] = useState(() => new Set());
   useEffect(() => {
     let dead = false;
@@ -117,7 +118,7 @@ function UserContent({ h, mode, type, name, q, s }) {
   ));
   if (type === 'comment') return <div className="pf-lc">{items.map(c => {
     const m = c.type === 'match' ? byId(c.targetId) : null;
-    const href = c.type === 'article' ? `/article/${c.targetId}` : c.type === 'post' ? `/post/${c.targetId}` : m ? `/match/${m.id}` : null;
+    const href = c.type === 'article' ? `/article/${c.targetId}` : c.type === 'post' ? `/post/${c.targetId}` : m ? mhref(m) : null;
     const on = c.type === 'match' ? (m ? `on ${label(m)}` : 'on a match') : c.type === 'article' ? 'on an article' : c.type === 'post' ? 'on a post' : 'on a review';
     return (
       <article key={c.id} className="comment">
@@ -131,12 +132,12 @@ function UserContent({ h, mode, type, name, q, s }) {
     );
   })}</div>;
   return <div className="pf-cards">{items.map(a => (
-    <PCard key={a.id} cover={a.cover} href={`/article/${a.id}`} t={a.title} meta={`${a.category} · by ${a.author.name}`} d={Math.max(1, (Date.now() - new Date(a.publishedAt || a.updatedAt)) / 864e5)} a={`hsl(${hue(a.title)} 50% 35%)`} b={`hsl(${hue(a.title) + 60} 50% 25%)`} />
+    <PCard key={a.id} cover={a.cover} href={articlePath(a.id, a.title)} t={a.title} meta={`${a.category} · by ${a.author.name}`} d={Math.max(1, (Date.now() - new Date(a.publishedAt || a.updatedAt)) / 864e5)} a={`hsl(${hue(a.title)} 50% 35%)`} b={`hsl(${hue(a.title) + 60} 50% 25%)`} />
   ))}</div>;
 }
 
 function ProfilePage({ h, tab, sub, u }) {
-  const { T, matches, label } = useData();
+  const { T, matches, label, mhref } = useData();
   const { me: session } = useData();
   const me = !!session && h === session.handle;
   const [q, setQ] = useState(''), [f, setF] = useState(''), [s, setS] = useState('new');
@@ -163,16 +164,16 @@ function ProfilePage({ h, tab, sub, u }) {
     const daysOf = (key, m) => u.days[key][m.id] ?? 1;
     if (tab === 'activity') {
       mode = 'activity';
-      items = u.activity.filter(a => a.type !== 'onsite').map((a, i) => ({ key: i, d: a.min / 1440, x: `${ACT[a.type]?.[0] || ''} ${a.match ? label(a.match) : a.name || a.title || ''}`, node: <ActivityRow a={a} label={label} /> }));
+      items = u.activity.filter(a => a.type !== 'onsite').map((a, i) => ({ key: i, d: a.min / 1440, x: `${ACT[a.type]?.[0] || ''} ${a.match ? label(a.match) : a.name || a.title || ''}`, node: <ActivityRow a={a} label={label} mhref={mhref} /> }));
     } else if (tab === 'matches' || likedGames) {
       mode = 'grid';
       items = ({ matches: u.watched, liked: u.liked })[tab].map(m => ({ key: m.id, d: daysOf(tab, m), x: label(m), f: m.comp, node: <MatchCard m={m} /> }));
     } else if (tab === 'reviews') {
       items = u.reviews.map((v, i) => ({ key: i, d: v.d, x: v.t + ' ' + label(v.m), f: v.r,
-        node: <PCard href={`/match/${v.m.id}`} t={v.t} meta={`${T[v.m.h].n} ${v.m.hs}–${v.m.as} ${T[v.m.a].n} · ${v.r}/10`} d={v.d} a={T[v.m.h].c} b={T[v.m.a].c} /> }));
+        node: <PCard href={mhref(v.m)} t={v.t} meta={`${T[v.m.h].n} ${v.m.hs}–${v.m.as} ${T[v.m.a].n} · ${v.r}/10`} d={v.d} a={T[v.m.h].c} b={T[v.m.a].c} /> }));
     } else if (tab === 'articles' || tab === 'saved') {
       items = (tab === 'saved' ? u.saved : u.arts).map(a => ({ key: a.id, d: a.d, x: a.t,
-        node: <div className="pc-wrap"><PCard cover={a.cover} href={`/article/${a.id}`} t={a.t} meta={a.m} d={a.d} a={`hsl(${hue(a.t)} 50% 35%)`} b={`hsl(${hue(a.t) + 60} 50% 25%)`} />
+        node: <div className="pc-wrap"><PCard cover={a.cover} href={articlePath(a.id, a.t)} t={a.t} meta={a.m} d={a.d} a={`hsl(${hue(a.t)} 50% 35%)`} b={`hsl(${hue(a.t) + 60} 50% 25%)`} />
           {me && tab === 'articles' && <Link className="pc-edit" href={`/write/${a.id}`}>Edit</Link>}</div> }));
     } else { // followers | following
       mode = 'users';

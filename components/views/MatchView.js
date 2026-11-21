@@ -10,6 +10,7 @@ import { Crest, MiniBadge } from '../ui';
 import { COMPC, COMPN } from '@/lib/consts';
 import { sendJSON } from '@/lib/profile';
 import { fmt, ord, timeAgo } from '@/lib/util';
+import { articlePath, parseId } from '@/lib/slug';
 
 const IC = {
   eye: <svg viewBox="0 0 64 44"><path d="M2 22C10 8 22 2 32 2s22 6 30 20c-8 14-20 20-30 20S10 36 2 22z" fill="currentColor" /><circle cx="32" cy="22" r="11" fill="#030305" /><circle cx="32" cy="22" r="5" fill="currentColor" /></svg>,
@@ -20,7 +21,7 @@ const IC = {
 export default function MatchView() {
   const d = useData();
   const router = useRouter();
-  const id = +useParams().id;
+  const id = +parseId(useParams().id);
   const m = d.status === 'ready' ? d.byId(id) : null;
 
   useEffect(() => { if (d.status === 'ready' && !m) router.replace('/'); }, [d.status, m, router]);
@@ -204,7 +205,7 @@ function MatchArticles({ m, active, onCount }) {
   return (
     <div className="mp-arts">
       {list.map(a => (
-        <Link key={a.id} className="mp-art" href={`/article/${a.id}`}>
+        <Link key={a.id} className="mp-art" href={articlePath(a.id, a.title)}>
           <div className="mp-art-img" role="img" aria-label="" style={a.cover ? { backgroundImage: `url('${a.cover}')` } : undefined}>{a.cover ? null : <span>{a.category.slice(0, 1)}</span>}</div>
           <div className="mp-art-t">
             <h3>{a.title}</h3>

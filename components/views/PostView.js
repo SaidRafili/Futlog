@@ -5,11 +5,12 @@ import { useEffect, useState } from 'react';
 import { useData } from '../DataProvider';
 import PostCard from '../PostCard';
 import { sendJSON } from '@/lib/profile';
+import { parseId } from '@/lib/slug';
 
 // One post on its own page (/post/:id): where a post's share link, its timestamp and search results lead. Replies are open by default.
 export default function PostView() {
   const d = useData();
-  const id = useParams().id, router = useRouter();
+  const id = parseId(useParams().id) || 'x', router = useRouter();
   const [st, setSt] = useState({ phase: 'loading' });
   const who = d.me?.handle || '';
 

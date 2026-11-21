@@ -4,10 +4,10 @@ import { useData } from './DataProvider';
 import { Crest } from './ui';
 
 export default function MatchCard({ m }) {
-  const { T, label } = useData();
+  const { T, label, mhref } = useData();
   const h = T[m.h], a = T[m.a];
   return (
-    <Link className="match" href={`/match/${m.id}`} aria-label={label(m)}>
+    <Link className="match" href={mhref(m)} aria-label={label(m)}>
       <div className="m-top"><span>{m.leagueLogo ? <img className="m-lg" src={m.leagueLogo} alt="" loading="lazy" /> : null}{m.comp}{m.stage ? ' / ' + m.stage : ''}</span><span>{m.season}</span></div>
       <div className={m.img ? 'm-photo ph' : 'm-photo'} style={{
         '--a': h.c, '--b': a.c,

@@ -9,6 +9,7 @@ import { Avatar, FollowButton } from '../ui';
 import { highlightParts, tokens } from '@/lib/fold';
 import { searchMatches } from '@/lib/matchsearch';
 import { fmt, profileHref, shortDate, uniq } from '@/lib/util';
+import { articlePath } from '@/lib/slug';
 
 const CAP = 120, PAGE = 20, PREVIEW = 4;
 const TABS = [['all', 'All'], ['matches', 'Matches'], ['articles', 'Articles'], ['people', 'People'], ['posts', 'Posts']];
@@ -35,7 +36,7 @@ function PersonRow({ p, words }) {
 
 function ArticleRow({ a, words }) {
   return (
-    <Link className="sr-art" href={`/article/${a.id}`}>
+    <Link className="sr-art" href={articlePath(a.id, a.title)}>
       <div className="sr-thumb" role="img" aria-label="" style={a.cover ? { backgroundImage: `url('${a.cover}')` } : undefined}>{a.cover ? null : <span>{a.category.slice(0, 1)}</span>}</div>
       <div>
         <h3><Mark text={a.title} words={words} /></h3>
