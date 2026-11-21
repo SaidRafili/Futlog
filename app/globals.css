@@ -1063,3 +1063,8 @@ a.nav-write{margin-left:6px}                    /* "Write" now sits beside the n
 .articles,.ar-matches,.comments,.mp-comments,.reviews{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media (max-width:900px){.reviews,.mp-comments{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:760px){.articles,.comments{grid-template-columns:minmax(0,1fr)}}
+
+/* safety net: if an old components/ui.js (class "crest logo") is still deployed, the header's phone .logo rules must not hit the crest */
+.crest.logo,.crest.crest-img{order:0;flex:none;max-width:none;overflow:visible;text-overflow:clip;border:0;display:block}
+.crest.logo img{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:contain}
+@media (max-width:760px){.crest.logo,.crest.crest-img{flex:none;min-width:0}}
