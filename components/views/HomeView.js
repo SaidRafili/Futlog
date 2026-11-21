@@ -1,15 +1,32 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useData } from '../DataProvider';
 import MatchCard from '../MatchCard';
 import PostCard from '../PostCard';
 import { Avatar, LikeButton, MiniBadge } from '../ui';
 import { profileHref, timeAgo } from '@/lib/util';
 import { cs } from '@/lib/data';
+import { newSeed } from '@/lib/shuffle';
 
 // GET json from our API; resolves to null if it fails (the section then just shows its empty text)
 const getJSON = url => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+
+// How many columns the match grid currently has, so we can render complete rows that fill the whole width
+function useGridCols(ref, deps) {
+  const [cols, setCols] = useState(8);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const read = () => {
+      const n = getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length;
+      if (n > 0) setCols(n);
+    };
+    read();
+    const ro = new ResizeObserver(read); ro.observe(el);
+    return () => ro.disconnect();
+  }, deps);   // eslint-disable-line react-hooks/exhaustive-deps
+  return cols;
+}
 
 function HomeComment({ c }) {
   const { T, byId, label } = useData();
@@ -41,14 +58,20 @@ export default function HomeView() {
   const [open, setOpen] = useState(() => new Set());
   const toggle = id => setOpen(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const who = d.me?.handle || '';
+  const gridRef = useRef(null);
+  const cols = useGridCols(gridRef, [ready]);
+  const MATCH_ROWS = 2;                                   // always whole rows, so the last row is never half empty
+  const want = Math.min(ready ? d.matches.length : 0, cols * MATCH_ROWS);
+  const shownMatches = ready ? d.matches.slice(0, want >= cols ? want - (want % cols) : want) : [];
 
   // everything below comes from PostgreSQL; re-read after sign-in so the "liked" hearts are right
   useEffect(() => {
     if (!d.meReady) return;
     // random picks: a weighted random sample (liked / discussed / fresh items come up more often), different on every reload
-    getJSON('/api/posts?tab=mix&limit=6').then(j => setPosts(j?.posts || []));
-    getJSON('/api/articles?sort=random&limit=4').then(j => setArts(j?.articles || []));
-    getJSON('/api/comments?type=match&top=1&random=1&limit=3').then(j => setComments(j?.comments || []));
+    const seed = newSeed();   // a fresh seed on every page load / refresh -> a different random mix each time
+    getJSON(`/api/posts?tab=mix&limit=6&seed=${seed}`).then(j => setPosts(j?.posts || []));
+    getJSON(`/api/articles?sort=random&limit=4&seed=${seed}`).then(j => setArts(j?.articles || []));
+    getJSON(`/api/comments?type=match&top=1&random=1&limit=3&seed=${seed}`).then(j => setComments(j?.comments || []));
     getJSON('/api/articles?sort=new&limit=3').then(j => setNewest(j?.articles || []));   // "Recently added" stays newest-first
   }, [d.meReady, who]);
 
@@ -78,7 +101,7 @@ export default function HomeView() {
 
         <section id="matches">
           <div className="sec-head"><h2>Top matches this week</h2><Link href="/matches">See all matches</Link></div>
-          <div className="match-grid">{ready && d.matches.slice(0, 6).map(m => <MatchCard key={m.id} m={m} />)}</div>
+          <div className="match-grid match-grid-fill" ref={gridRef}>{shownMatches.map(m => <MatchCard key={m.id} m={m} />)}</div>
         </section>
 
         <section>
