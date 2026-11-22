@@ -6,11 +6,12 @@ import { Avatar } from '../ui';
 import { FINISHED, leagueName } from '@/lib/data';
 import { sendJSON } from '@/lib/profile';
 import { profileHref } from '@/lib/util';
-import { MAX_NOTE, outcomeOf, prevWeekStart, weekEnd, weekStart } from '@/lib/predictions';
+import { MAX_NOTE, WEEK_OFFSET_HOURS, WEEK_ZONE, outcomeOf, prevWeekStart, weekEnd, weekStart } from '@/lib/predictions';
 
 const PAGE = 30;
 const range = (a, b) => {            // "23 – 29 Nov" (b is exclusive, so show the day before)
-  const f = (t, o) => new Date(t).toLocaleDateString('en-GB', { timeZone: 'UTC', ...o });
+  const sh = WEEK_OFFSET_HOURS * 3600000;                         // show the dates as they are in the week zone
+  const f = (t, o) => new Date(t + sh).toLocaleDateString('en-GB', { timeZone: 'UTC', ...o });
   const last = b - 86400000;
   return `${f(a, { day: 'numeric' })} – ${f(last, { day: 'numeric', month: 'short' })}`;
 };
@@ -83,7 +84,7 @@ function PredictionsPage() {
               </ol>
             ) : <p className="pr-none">No leaders yet. The board is filled once a full week of predictions has been played.</p>}
           </div>
-          <p className="pr-fine">The board resets every Monday at 00:00 UTC.</p>
+          <p className="pr-fine">The board resets every Monday at 00:00 {WEEK_ZONE}.</p>
         </aside>
 
         <section className="pr-main">
