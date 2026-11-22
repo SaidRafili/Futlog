@@ -1134,12 +1134,9 @@ a.nav-write{margin-left:6px}                    /* "Write" now sits beside the n
 .ft-theme{margin-top:14px}
 .ft-theme small{display:block;color:var(--muted);font-size:11px;margin-bottom:6px}
 
-/* ---- Christmas logo: some of the o's become little pine trees (December 1 - January 6, see components/Logo.js) ---- */
-.logo .xt{display:inline-block;width:.8em;height:1.1em;vertical-align:baseline;margin:0 .02em;overflow:visible}
-.logo .xt .star{transform-origin:6px 2px;animation:xtTwinkle 2.4s ease-in-out infinite}
-.logo .xt .b1{animation:xtBlink 1.8s ease-in-out infinite}
-.logo .xt .b2{animation:xtBlink 1.8s ease-in-out .6s infinite}
-.logo .xt .b3{animation:xtBlink 1.8s ease-in-out 1.2s infinite}
-@keyframes xtTwinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
-@keyframes xtBlink{0%,100%{opacity:1}50%{opacity:.35}}
-@media (prefers-reduced-motion:reduce){.logo .xt .star,.logo .xt .b1,.logo .xt .b2,.logo .xt .b3{animation:none}}
+/* ---- Christmas logo: three middle o's become baubles (Nov 22 - Jan 11, see components/Logo.js) ---- */
+/* the Poppins "o" is .58em wide and tall with .03em of space each side, so the bauble gets exactly that box */
+.logo .xb{display:inline-block;width:.58em;height:.58em;margin:0 .03em;vertical-align:-.01em;overflow:visible}
+.logo .xb .shine{animation:xbShine 2.6s ease-in-out infinite}
+@keyframes xbShine{0%,100%{fill-opacity:.85}50%{fill-opacity:.3}}
+@media (prefers-reduced-motion:reduce){.logo .xb .shine{animation:none}}

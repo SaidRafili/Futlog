@@ -2,29 +2,30 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-// The site name. Between December 1 and January 6 a few of the "o"s turn into little decorated pine trees.
+// The site name. From November 22 to January 11 three of the "o"s (the middle ones) turn into Christmas baubles.
 // To preview it any time of year, run  localStorage.setItem('futlog-xmas','1')  in the browser console (use '0' to force it off).
 const WORD = ['F', 'u', 't', 'l', ...'oooooooooo', 'g'];
-const TREES = new Set([4, 7, 10, 13]);       // positions in WORD (0-based) that become trees: the 1st, 4th, 7th and 10th "o"
+const BAUBLES = { 7: 0, 8: 1, 9: 2 };         // positions in WORD (0-based) -> colour: the 4th, 5th and 6th "o", together in the middle
 
 export function isChristmas(now = new Date()) {
   try { const f = localStorage.getItem('futlog-xmas'); if (f === '1') return true; if (f === '0') return false; } catch {}
-  const m = now.getMonth(), d = now.getDate();
-  return m === 11 || (m === 0 && d <= 6);
+  const m = now.getMonth(), d = now.getDate();                       // Nov 22 - Jan 11, every year
+  return (m === 10 && d >= 22) || m === 11 || (m === 0 && d <= 11);
 }
 
-function Tree({ n }) {
-  const star = n % 2 === 0 ? '#ffd84a' : '#ffe680';
+const COLORS = [['#ff6b6b', '#c1121f'], ['#ffd84a', '#d98e04'], ['#6cb8ff', '#1d5fd1']];   // [light, dark] of each bauble
+
+// Same width and height as the letter "o" (.58em), so it sits in the word like a letter
+function Bauble({ n }) {
+  const [lt, dk] = COLORS[n], id = `xb${n}`;
   return (
-    <svg className="xt" viewBox="0 0 12 16" aria-hidden="true" focusable="false">
-      <path className="star" d="M6 0l.9 1.7 1.9.3-1.4 1.3.3 1.9L6 4.3 4.3 5.2l.3-1.9L3.2 2l1.9-.3z" fill={star} />
-      <path d="M6 3.2L9.3 7.6H2.7z" fill="#2f9e57" />
-      <path d="M6 5.6l4 5H2z" fill="#26874a" />
-      <path d="M6 8.4l5 5.4H1z" fill="#1f7340" />
-      <rect x="5" y="13.8" width="2" height="2.2" fill="#7a4b2a" />
-      <circle className="b1" cx="6" cy="6.6" r=".75" fill="#ff5c6c" />
-      <circle className="b2" cx="4.4" cy="10.2" r=".8" fill="#ffd84a" />
-      <circle className="b3" cx="7.8" cy="11.8" r=".8" fill="#7cc4ff" />
+    <svg className="xb" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <defs><radialGradient id={id} cx=".35" cy=".3" r=".85"><stop offset="0" stopColor={lt} /><stop offset="1" stopColor={dk} /></radialGradient></defs>
+      <circle cx="10" cy="10" r="10" fill={`url(#${id})`} />
+      <path d="M1.2 8.6Q10 12.4 18.8 8.6" fill="none" stroke="#fff" strokeOpacity=".75" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M2 13Q10 16.6 18 13" fill="none" stroke="#fff" strokeOpacity=".45" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M7.6 0.6h4.8l-.6 2.6H8.2z" fill="#f4c542" stroke="#b8860b" strokeWidth=".5" />
+      <ellipse className="shine" cx="6.2" cy="5.8" rx="2" ry="1.2" transform="rotate(-35 6.2 5.8)" fill="#fff" fillOpacity=".85" />
     </svg>
   );
 }
@@ -34,7 +35,7 @@ export default function Logo({ className = 'logo', href = '/' }) {
   useEffect(() => setXmas(isChristmas()), []);
   return (
     <Link className={className} href={href} aria-label="Futlog">
-      {WORD.map((c, i) => xmas && TREES.has(i) ? <Tree key={i} n={i} /> : c)}
+      {WORD.map((c, i) => xmas && i in BAUBLES ? <Bauble key={i} n={BAUBLES[i]} /> : c)}
     </Link>
   );
 }
