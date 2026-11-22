@@ -7,6 +7,7 @@ import Photo from '../Photo';
 import PostCard from '../PostCard';
 import { newSeed } from '@/lib/shuffle';
 import { articlePath } from '@/lib/slug';
+import { timeAgo } from '@/lib/util';
 
 // Home page posts: at least 9, 12 fills the 2, 3 and 4 column Pinterest layouts without a ragged last row
 const POSTS_SHOWN = 12, POSTS_PHONE = 6;
@@ -68,7 +69,7 @@ function LeaguePills({ matches }) {
 export default function HomeView() {
   const d = useData();
   const ready = d.status === 'ready';
-  const [arts, setArts] = useState(null), [posts, setPosts] = useState(null);
+  const [arts, setArts] = useState(null), [newest, setNewest] = useState([]), [posts, setPosts] = useState(null);
   const who = d.me?.handle || '';
   const gridRef = useRef(null);
   const cols = useGridCols(gridRef, [ready]);
@@ -84,10 +85,18 @@ export default function HomeView() {
     const seed = newSeed();   // a fresh seed on every page load / refresh -> a different random mix each time
     getJSON(`/api/posts?tab=mix&limit=${POSTS_SHOWN}&seed=${seed}`).then(j => setPosts(j?.posts || []));
     getJSON(`/api/articles?sort=random&limit=4&seed=${seed}`).then(j => setArts(j?.articles || []));
+    getJSON('/api/articles?sort=new&limit=3').then(j => setNewest(j?.articles || []));   // "Recently added" stays newest-first
   }, [d.meReady, who]);
 
   const featured = arts?.[0], rest = arts?.slice(1) || [];
   const meta = a => `${a.category} · ${a.readMinutes || 1} min read`;
+
+  // "Recently added": newest published articles + newest finished matches, newest first
+  const updates = ready ? [
+    ...[...newest].filter(a => a.publishedAt).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)).slice(0, 3)
+      .map(a => ({ key: 'a' + a.id, t: `New article: ${a.title}`, href: articlePath(a.id, a.title), at: new Date(a.publishedAt).getTime() })),
+    ...d.matches.slice(0, 2).map(m => ({ key: 'm' + m.id, t: `New match added: ${d.label(m)}`, href: d.mhref(m), at: m.ts })),
+  ].sort((x, y) => y.at - x.at) : [];
 
   return (
     <div className="page" id="home">
@@ -127,6 +136,13 @@ export default function HomeView() {
           )}
         </section>
 
+
+        <section>
+          <div className="sec-head"><h2>Recently added</h2></div>
+          <ul className="updates">
+            {updates.map(u => <li key={u.key}><Link href={u.href}>{u.t}</Link><time>{timeAgo(u.at)}</time></li>)}
+          </ul>
+        </section>
       </main>
       <div className="ad-space" aria-hidden="true" />
     </div>

@@ -1142,13 +1142,14 @@ a.nav-write{margin-left:6px}                    /* "Write" now sits beside the n
 @media (prefers-reduced-motion:reduce){.logo .xb .shine{animation:none}}
 
 /* ---- home page layout (league pills, one row of poster cards, Pinterest posts, articles) ---- */
-#home .content{max-width:900px;gap:30px}
-.lg-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+#home .content{gap:30px}   /* full width, same as the header */
+.lg-pills{display:flex;flex-wrap:nowrap;gap:8px;margin-top:2px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}   /* always ONE row; scrolls sideways when there are more than fit */
+.lg-pill{flex:none}
 .lg-pill{display:inline-flex;align-items:center;gap:8px;padding:4px 14px 4px 4px;border-radius:999px;background:var(--surf2);font-size:11px;font-weight:600;white-space:nowrap;transition:background .15s ease,transform .15s ease}
 .lg-pill:hover,.lg-pill:focus-visible{background:var(--accent-deep);color:#fff;transform:translateY(-1px)}
 .lg-badge{width:22px;height:22px;border-radius:50%;background:#e9e7ff;color:#1a1240;display:grid;place-items:center;overflow:hidden;flex:none;font-size:11px}
 .lg-badge img{width:16px;height:16px;object-fit:contain}
-@media (max-width:760px){.lg-pills{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -12px;padding:2px 12px}.lg-pills::-webkit-scrollbar{display:none}}
+@media (max-width:760px){.lg-pills{scrollbar-width:none;margin:0 -12px;padding:2px 12px}.lg-pills::-webkit-scrollbar{display:none}}
 
 /* 8 small posters in one row on desktop, 6 on tablets, 2 per row (2 rows) on phones */
 .match-grid.match-grid-home{grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
