@@ -367,3 +367,25 @@ CREATE TABLE IF NOT EXISTS fixture_events (
     assist     VARCHAR(255)
 );
 CREATE INDEX IF NOT EXISTS fixture_events_event_idx ON fixture_events (event_id);
+
+
+-- =====================================================================
+-- PREDICTIONS (the /predictions page)   (safe to re-run)
+-- One row per user per match: who wins (home / draw / away) plus an optional written prediction.
+-- match_id = fixtures.event_id (no FK, same reason as user_matches).
+-- Points are NOT stored: lib/predictions.js (pointsFor) works them out from pick + final score, so the rule can change later.
+-- note_status is for the coming moderation: notes start as 'pending' and are not shown to other people yet.
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS predictions (
+    user_id     BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    match_id    INT    NOT NULL,
+    pick        VARCHAR(4) NOT NULL CHECK (pick IN ('home', 'draw', 'away')),
+    note        VARCHAR(280),
+    note_status VARCHAR(10) NOT NULL DEFAULT 'pending' CHECK (note_status IN ('pending', 'approved', 'rejected')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, match_id)
+);
+CREATE INDEX IF NOT EXISTS predictions_match_idx ON predictions (match_id);
+DROP TRIGGER IF EXISTS predictions_set_updated_at ON predictions;
+CREATE TRIGGER predictions_set_updated_at BEFORE UPDATE ON predictions FOR EACH ROW EXECUTE FUNCTION set_updated_at();
