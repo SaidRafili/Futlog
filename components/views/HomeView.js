@@ -12,7 +12,7 @@ import { newSeed } from '@/lib/shuffle';
 import { articlePath } from '@/lib/slug';
 
 // Home page posts: at least 9, 12 fills the 2, 3 and 4 column Pinterest layouts without a ragged last row
-const POSTS_SHOWN = 12;
+const POSTS_SHOWN = 12, POSTS_PHONE = 6;
 
 // GET json from our API; resolves to null if it fails (the section then just shows its empty text)
 const getJSON = url => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
@@ -31,6 +31,18 @@ function useGridCols(ref, deps) {
     return () => ro.disconnect();
   }, deps);   // eslint-disable-line react-hooks/exhaustive-deps
   return cols;
+}
+
+// true on phones (<= 760px wide); false on the server and on the first paint, then it follows the screen
+function usePhone() {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 760px)');
+    const read = () => setPhone(mq.matches);
+    read(); mq.addEventListener('change', read);
+    return () => mq.removeEventListener('change', read);
+  }, []);
+  return phone;
 }
 
 function HomeComment({ c }) {
@@ -63,7 +75,8 @@ export default function HomeView() {
     const who = d.me?.handle || '';
   const gridRef = useRef(null);
   const cols = useGridCols(gridRef, [ready]);
-  const MATCH_ROWS = 1;                                   // one single row of matches (always a whole row, never half empty)
+  const phone = usePhone();
+  const MATCH_ROWS = phone ? 2 : 1;                       // desktop / tablet: one row; phone: 2 columns x 2 rows = 4 matches (always whole rows)
   const want = Math.min(ready ? d.matches.length : 0, cols * MATCH_ROWS);
   const shownMatches = ready ? d.matches.slice(0, want >= cols ? want - (want % cols) : want) : [];
 
@@ -93,6 +106,16 @@ export default function HomeView() {
       <div className="ad-space" aria-hidden="true" />
       <main className="content">
 
+        <section id="posts">
+          <div className="sec-head"><h2>Posts to explore</h2><Link href="/feed">Open the feed</Link></div>
+          {posts && !posts.length
+            ? <p className="empty">No posts yet. <Link href="/feed" style={{ color: 'var(--accent)' }}>Share the first one.</Link></p>
+            : <div className="pin-grid">{ready && posts?.slice(0, phone ? POSTS_PHONE : POSTS_SHOWN).map(p => (
+                <PostCard pin key={p.id} p={p} m={p.matchId ? d.byId(p.matchId) : null}
+                  onReplies={n => setPosts(l => l.map(x => x.id === p.id ? { ...x, replies: n } : x))} />
+              ))}</div>}
+        </section>
+
         <section id="matches">
           <div className="sec-head"><h2>Top matches this week</h2><Link href="/matches">See all matches</Link></div>
           <div className="match-grid match-grid-fill" ref={gridRef}>{shownMatches.map(m => <MatchCard key={m.id} m={m} />)}</div>
@@ -105,15 +128,6 @@ export default function HomeView() {
             : <div className="comments comments-row">{ready && comments?.map(c => <HomeComment key={c.id} c={c} />)}</div>}
         </section>
 
-        <section id="posts">
-          <div className="sec-head"><h2>Posts to explore</h2><Link href="/feed">Open the feed</Link></div>
-          {posts && !posts.length
-            ? <p className="empty">No posts yet. <Link href="/feed" style={{ color: 'var(--accent)' }}>Share the first one.</Link></p>
-            : <div className="pin-grid">{ready && posts?.map(p => (
-                <PostCard pin key={p.id} p={p} m={p.matchId ? d.byId(p.matchId) : null}
-                  onReplies={n => setPosts(l => l.map(x => x.id === p.id ? { ...x, replies: n } : x))} />
-              ))}</div>}
-        </section>
 
         <section id="articles">
           <div className="sec-head"><h2>Articles to read</h2><Link href="/write">Write an article</Link></div>
