@@ -1,13 +1,10 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useData } from '../DataProvider';
 import MatchCard from '../MatchCard';
 import Photo from '../Photo';
 import PostCard from '../PostCard';
-import { Avatar, LikeButton, MiniBadge } from '../ui';
-import { profileHref, timeAgo } from '@/lib/util';
-import { cs } from '@/lib/data';
 import { newSeed } from '@/lib/shuffle';
 import { articlePath } from '@/lib/slug';
 
@@ -45,34 +42,34 @@ function usePhone() {
   return phone;
 }
 
-function HomeComment({ c }) {
-  const { T, byId, label, mhref } = useData();
-  const m = byId(c.targetId), h = m && T[m.h], a = m && T[m.a];
+// One pill per league, busiest first. Clicking it opens the matches page with only that league's games (newest first).
+function LeaguePills({ matches }) {
+  const leagues = useMemo(() => {
+    const m = new Map();
+    for (const x of matches) {
+      const l = m.get(x.leagueId) || { id: x.leagueId, name: x.comp, logo: x.leagueLogo, n: 0 };
+      l.n++; if (!l.logo && x.leagueLogo) l.logo = x.leagueLogo; m.set(x.leagueId, l);
+    }
+    return [...m.values()].sort((x, y) => y.n - x.n || x.name.localeCompare(y.name)).slice(0, 12);
+  }, [matches]);
+  if (!leagues.length) return null;
   return (
-    <article className="comment">
-      <div className="c-head">
-        <Avatar name={c.user.name} src={c.user.avatar} className="c-avatar" />
-        <div><Link className="c-name" href={profileHref(c.user.handle)}>{c.user.name}</Link><div className="c-time">{timeAgo(c.at)}</div></div>
-      </div>
-      <p className="c-text">“{c.body}”</p>
-      <div className="c-foot">
-        {m ? (
-          <Link className="chip" href={mhref(m)} aria-label={label(m)}>
-            <span className="mini"><MiniBadge t={h} />{m.hs}–{m.as}<MiniBadge t={a} /></span>
-            <span className="t">{cs(m)}</span>
-          </Link>
-        ) : <span />}
-        <LikeButton type="comment" id={c.id} count={c.likes} liked={c.liked} />
-      </div>
-    </article>
+    <nav className="lg-pills" aria-label="Leagues">
+      {leagues.map(l => (
+        <Link key={l.id} className="lg-pill" href={`/matches?league=${l.id}`}>
+          <span className="lg-badge">{l.logo ? <img src={l.logo} alt="" width="20" height="20" loading="lazy" decoding="async" /> : l.name.slice(0, 1)}</span>
+          {l.name}
+        </Link>
+      ))}
+    </nav>
   );
 }
 
 export default function HomeView() {
   const d = useData();
   const ready = d.status === 'ready';
-  const [arts, setArts] = useState(null), [newest, setNewest] = useState([]), [comments, setComments] = useState(null), [posts, setPosts] = useState(null);
-    const who = d.me?.handle || '';
+  const [arts, setArts] = useState(null), [posts, setPosts] = useState(null);
+  const who = d.me?.handle || '';
   const gridRef = useRef(null);
   const cols = useGridCols(gridRef, [ready]);
   const phone = usePhone();
@@ -87,24 +84,21 @@ export default function HomeView() {
     const seed = newSeed();   // a fresh seed on every page load / refresh -> a different random mix each time
     getJSON(`/api/posts?tab=mix&limit=${POSTS_SHOWN}&seed=${seed}`).then(j => setPosts(j?.posts || []));
     getJSON(`/api/articles?sort=random&limit=4&seed=${seed}`).then(j => setArts(j?.articles || []));
-    getJSON(`/api/comments?type=match&top=1&random=1&limit=4&seed=${seed}`).then(j => setComments(j?.comments || []));
-    getJSON('/api/articles?sort=new&limit=3').then(j => setNewest(j?.articles || []));   // "Recently added" stays newest-first
   }, [d.meReady, who]);
 
   const featured = arts?.[0], rest = arts?.slice(1) || [];
   const meta = a => `${a.category} · ${a.readMinutes || 1} min read`;
 
-  // "Recently added": newest published articles + newest finished matches, newest first
-  const updates = ready ? [
-    ...[...newest].filter(a => a.publishedAt).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)).slice(0, 3)
-      .map(a => ({ key: 'a' + a.id, t: `New article: ${a.title}`, href: articlePath(a.id, a.title), at: new Date(a.publishedAt).getTime() })),
-    ...d.matches.slice(0, 2).map(m => ({ key: 'm' + m.id, t: `New match added: ${d.label(m)}`, href: d.mhref(m), at: m.ts })),
-  ].sort((x, y) => y.at - x.at) : [];
-
   return (
     <div className="page" id="home">
       <div className="ad-space" aria-hidden="true" />
       <main className="content">
+        {ready && <LeaguePills matches={d.matches} />}
+
+        <section id="matches">
+          <div className="sec-head"><h2>Top matches this week</h2><Link href="/matches">See all matches</Link></div>
+          <div className="match-grid match-grid-home" ref={gridRef}>{shownMatches.map(m => <MatchCard key={m.id} m={m} />)}</div>
+        </section>
 
         <section id="posts">
           <div className="sec-head"><h2>Posts to explore</h2><Link href="/feed">Open the feed</Link></div>
@@ -115,19 +109,6 @@ export default function HomeView() {
                   onReplies={n => setPosts(l => l.map(x => x.id === p.id ? { ...x, replies: n } : x))} />
               ))}</div>}
         </section>
-
-        <section id="matches">
-          <div className="sec-head"><h2>Top matches this week</h2><Link href="/matches">See all matches</Link></div>
-          <div className="match-grid match-grid-fill" ref={gridRef}>{shownMatches.map(m => <MatchCard key={m.id} m={m} />)}</div>
-        </section>
-
-        <section>
-          <div className="sec-head"><h2>Match comments worth reading</h2></div>
-          {comments && !comments.length
-            ? <p className="empty">No match comments yet. Open a match and start the conversation.</p>
-            : <div className="comments comments-row">{ready && comments?.map(c => <HomeComment key={c.id} c={c} />)}</div>}
-        </section>
-
 
         <section id="articles">
           <div className="sec-head"><h2>Articles to read</h2><Link href="/write">Write an article</Link></div>
@@ -146,12 +127,6 @@ export default function HomeView() {
           )}
         </section>
 
-        <section>
-          <div className="sec-head"><h2>Recently added</h2></div>
-          <ul className="updates">
-            {updates.map(u => <li key={u.key}><Link href={u.href}>{u.t}</Link><time>{timeAgo(u.at)}</time></li>)}
-          </ul>
-        </section>
       </main>
       <div className="ad-space" aria-hidden="true" />
     </div>
