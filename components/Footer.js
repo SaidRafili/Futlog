@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ThemeToggle from './ThemeToggle';
 
 const social = [
   ['X / Twitter', 'https://x.com/futloogcom'],
@@ -13,6 +14,7 @@ export default function Footer() {
         <div className="ft-brand">
           <Link className="logo" href="/">Futlog</Link>
           <p>Log, rate and talk about the football matches you watch.</p>
+          <div className="ft-theme"><small>Appearance</small><ThemeToggle /></div>
         </div>
         <nav className="ft-col" aria-label="Footer navigation">
           <h2>Explore</h2>

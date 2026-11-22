@@ -22,8 +22,10 @@ export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#
 
 export default function RootLayout({ children }) {
   return (
-  <html lang="en">
+  <html lang="en" data-theme="dark" suppressHydrationWarning>
     <head>
+      {/* sets the saved (or device) colour theme before the first paint, so the page never flashes the wrong one */}
+      <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('futlog-theme');if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.setAttribute('data-theme',t);if(t==='light'){var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content','#f4f3fb')}}catch(e){}` }} />
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link
         rel="preconnect"
