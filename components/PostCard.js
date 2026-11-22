@@ -41,7 +41,7 @@ export function FeedMatch({ m }) {
 
 // One feed post: text, pictures, tagged match, like / reply / share, and edit + delete for the author.
 // Replies are comments of type 'post'. `mark` highlights search words (search results). `onEdit` / `onDelete` are async and may throw.
-export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onReplies, mark, compact }) {
+export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onReplies, mark, compact, pin }) {
   const [editing, setEditing] = useState(false), [v, setV] = useState(p.body), [err, setErr] = useState(''), [confirm, setConfirm] = useState(false);
   const save = async e => {
     e.preventDefault();
@@ -54,8 +54,36 @@ export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onR
   const del = async () => { try { await onDelete(p); } catch (x) { setErr(x.message); setConfirm(false); } };
   const href = postPath(p.id, p.body);
   const router = useRouter();
+  const go2 = e => { if (!e.defaultPrevented && !e.target.closest('a,button,input,textarea,form')) router.push(href); };
   const go = e => { if (compact && !e.defaultPrevented && !e.target.closest('a,button,input,textarea,form')) router.push(href); };
   const pic = compact && p.images?.[0];
+  if (pin) {
+    // Pinterest-style tile: picture on top at its own proportions, then text, tagged match and a small author / like / reply footer
+    const im = p.images?.[0], ratio = im?.w && im?.h ? Math.min(Math.max(im.w / im.h, 0.66), 1.6) : null;
+    return (
+      <article className={im ? 'pin has-img' : 'pin'} onClick={go2}>
+        {im ? (
+          <Link className="pin-img" href={href} style={ratio ? { aspectRatio: ratio } : undefined} aria-label="Open post">
+            <img src={im.url} alt={im.alt || ''} loading="lazy" decoding="async" />
+            {p.images.length > 1 ? <span>+{p.images.length - 1}</span> : null}
+          </Link>
+        ) : null}
+        <div className="pin-body">
+          {p.body ? <p className="pin-text"><PostText text={p.body} /></p> : null}
+          {m ? <FeedMatch m={m} /> : null}
+          <div className="pin-foot">
+            <Link className="pin-by" href={profileHref(p.user.handle)}><Avatar name={p.user.name} src={p.user.avatar} className="pin-av" /><span>{p.user.name}</span></Link>
+            <div className="p-acts">
+              <LikeButton type="post" id={p.id} count={p.likes} liked={p.liked}>
+                {({ on, n, toggle }) => <button className={on ? 'on' : ''} aria-pressed={on} onClick={toggle} aria-label={on ? 'Remove like' : 'Like'}>{ICO.heart}{n}</button>}
+              </LikeButton>
+              <Link className="p-replies" href={href} aria-label="Replies">{ICO.chat}{p.replies}</Link>
+            </div>
+          </div>
+        </div>
+      </article>
+    );
+  }
   return (
     <article className={compact ? (pic ? 'post compact has-img' : 'post compact') : 'post'} style={{ '--hc': 'var(--accent-deep)' }} onClick={compact ? go : undefined}>
       <Link href={profileHref(p.user.handle)} style={{ display: 'contents' }}><Avatar name={p.user.name} src={p.user.avatar} className="p-av" /></Link>

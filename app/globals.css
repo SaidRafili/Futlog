@@ -1069,3 +1069,32 @@ a.nav-write{margin-left:6px}                    /* "Write" now sits beside the n
 .crest.logo,.crest.crest-img{order:0;flex:none;max-width:none;overflow:visible;text-overflow:clip;border:0;display:block}
 .crest.logo img{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:contain}
 @media (max-width:760px){.crest.logo,.crest.crest-img{flex:none;min-width:0}}
+
+/* ---- home page: one row of 4 comments, one row of matches, Pinterest-style post grid ---- */
+/* 4 comments always sit in ONE row; when the screen is too narrow for 4 readable cards the row scrolls sideways (swipe) instead of wrapping */
+.comments.comments-row{grid-template-columns:repeat(4,minmax(230px,1fr));overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:6px}
+.comments.comments-row>.comment{scroll-snap-align:start}
+
+/* masonry: CSS columns, so every tile keeps its own height (no fixed row height, no gaps under short tiles) */
+.pin-grid{column-count:4;column-gap:var(--gap)}
+@media (max-width:1100px){.pin-grid{column-count:3}}
+@media (max-width:760px){.pin-grid{column-count:2;column-gap:10px}}
+.pin{break-inside:avoid;margin:0 0 var(--gap);background:var(--panel);border-radius:14px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;transition:transform .18s ease,box-shadow .18s ease}
+@media (max-width:760px){.pin{margin-bottom:10px;border-radius:12px}}
+.pin:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.45)}
+.pin-img{position:relative;display:block;background:#0e0e22}
+.pin-img img{display:block;width:100%;height:100%;object-fit:cover}
+.pin-img:not([style]) img{height:auto}
+.pin-img span{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;padding:1px 8px;border-radius:9px}
+.pin-body{padding:12px 12px 8px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.pin-text{line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden}
+.pin.has-img .pin-text{-webkit-line-clamp:4}
+.pin .p-match{margin:0;padding:6px 10px}
+.pin-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.pin-by{display:flex;align-items:center;gap:8px;min-width:0;font-size:12px;color:var(--muted)}
+.pin-by:hover{color:var(--accent)}
+.pin-by span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pin-av{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:11px;color:#fff}
+.pin .p-acts{flex:none;flex-wrap:nowrap;gap:0}
+.pin .p-acts button,.pin .p-replies{padding:4px 6px}
+@media (max-width:480px){.pin-by span{display:none}}

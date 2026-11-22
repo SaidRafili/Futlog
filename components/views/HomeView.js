@@ -11,6 +11,9 @@ import { cs } from '@/lib/data';
 import { newSeed } from '@/lib/shuffle';
 import { articlePath } from '@/lib/slug';
 
+// Home page posts: at least 9, 12 fills the 2, 3 and 4 column Pinterest layouts without a ragged last row
+const POSTS_SHOWN = 12;
+
 // GET json from our API; resolves to null if it fails (the section then just shows its empty text)
 const getJSON = url => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
 
@@ -57,12 +60,10 @@ export default function HomeView() {
   const d = useData();
   const ready = d.status === 'ready';
   const [arts, setArts] = useState(null), [newest, setNewest] = useState([]), [comments, setComments] = useState(null), [posts, setPosts] = useState(null);
-  const [open, setOpen] = useState(() => new Set());
-  const toggle = id => setOpen(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const who = d.me?.handle || '';
+    const who = d.me?.handle || '';
   const gridRef = useRef(null);
   const cols = useGridCols(gridRef, [ready]);
-  const MATCH_ROWS = 2;                                   // always whole rows, so the last row is never half empty
+  const MATCH_ROWS = 1;                                   // one single row of matches (always a whole row, never half empty)
   const want = Math.min(ready ? d.matches.length : 0, cols * MATCH_ROWS);
   const shownMatches = ready ? d.matches.slice(0, want >= cols ? want - (want % cols) : want) : [];
 
@@ -71,9 +72,9 @@ export default function HomeView() {
     if (!d.meReady) return;
     // random picks: a weighted random sample (liked / discussed / fresh items come up more often), different on every reload
     const seed = newSeed();   // a fresh seed on every page load / refresh -> a different random mix each time
-    getJSON(`/api/posts?tab=mix&limit=6&seed=${seed}`).then(j => setPosts(j?.posts || []));
+    getJSON(`/api/posts?tab=mix&limit=${POSTS_SHOWN}&seed=${seed}`).then(j => setPosts(j?.posts || []));
     getJSON(`/api/articles?sort=random&limit=4&seed=${seed}`).then(j => setArts(j?.articles || []));
-    getJSON(`/api/comments?type=match&top=1&random=1&limit=3&seed=${seed}`).then(j => setComments(j?.comments || []));
+    getJSON(`/api/comments?type=match&top=1&random=1&limit=4&seed=${seed}`).then(j => setComments(j?.comments || []));
     getJSON('/api/articles?sort=new&limit=3').then(j => setNewest(j?.articles || []));   // "Recently added" stays newest-first
   }, [d.meReady, who]);
 
@@ -91,15 +92,6 @@ export default function HomeView() {
     <div className="page" id="home">
       <div className="ad-space" aria-hidden="true" />
       <main className="content">
-        <section id="posts">
-          <div className="sec-head"><h2>Posts to explore</h2><Link href="/feed">Open the feed</Link></div>
-          {posts && !posts.length
-            ? <p className="empty">No posts yet. <Link href="/feed" style={{ color: 'var(--accent)' }}>Share the first one.</Link></p>
-            : <div className="home-posts">{ready && posts?.map(p => (
-                <PostCard compact key={p.id} p={p} m={p.matchId ? d.byId(p.matchId) : null} isOpen={open.has(p.id)} onToggle={() => toggle(p.id)}
-                  onReplies={n => setPosts(l => l.map(x => x.id === p.id ? { ...x, replies: n } : x))} />
-              ))}</div>}
-        </section>
 
         <section id="matches">
           <div className="sec-head"><h2>Top matches this week</h2><Link href="/matches">See all matches</Link></div>
@@ -110,7 +102,17 @@ export default function HomeView() {
           <div className="sec-head"><h2>Match comments worth reading</h2></div>
           {comments && !comments.length
             ? <p className="empty">No match comments yet. Open a match and start the conversation.</p>
-            : <div className="comments">{ready && comments?.map(c => <HomeComment key={c.id} c={c} />)}</div>}
+            : <div className="comments comments-row">{ready && comments?.map(c => <HomeComment key={c.id} c={c} />)}</div>}
+        </section>
+
+        <section id="posts">
+          <div className="sec-head"><h2>Posts to explore</h2><Link href="/feed">Open the feed</Link></div>
+          {posts && !posts.length
+            ? <p className="empty">No posts yet. <Link href="/feed" style={{ color: 'var(--accent)' }}>Share the first one.</Link></p>
+            : <div className="pin-grid">{ready && posts?.map(p => (
+                <PostCard pin key={p.id} p={p} m={p.matchId ? d.byId(p.matchId) : null}
+                  onReplies={n => setPosts(l => l.map(x => x.id === p.id ? { ...x, replies: n } : x))} />
+              ))}</div>}
         </section>
 
         <section id="articles">
