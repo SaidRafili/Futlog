@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { fixturesSql } from '@/lib/fixturesql';
 import { getSessionUser } from '@/lib/auth';
 import { posInt, person, requireUser } from '@/lib/content';
 import { dbError, fail, json, readBody } from '@/lib/users';
@@ -18,34 +19,34 @@ const LEADERS = 10;
 export async function GET() {
   try {
     const now = Date.now(), ws = weekStart(now), we = weekEnd(now), pw = prevWeekStart(now);
-    const me = await getSessionUser();
+    const me = await getSessionUser(), fx = await fixturesSql();
 
     const mine = {};
     if (me) {
       const { rows } = await query(
-        `SELECT p.match_id, p.pick, p.note FROM predictions p JOIN fixtures f ON f.event_id = p.match_id
-          WHERE p.user_id = $1 AND f.event_date >= $2 AND f.event_date < $3`, [me.user_id, new Date(ws), new Date(we)]);
+        `SELECT p.match_id, p.pick, p.note FROM predictions p JOIN (${fx}) f ON f.id = p.match_id
+          WHERE p.user_id = $1 AND f.ts >= $2 AND f.ts < $3`, [me.user_id, new Date(ws), new Date(we)]);
       for (const r of rows) mine[r.match_id] = { pick: r.pick, note: r.note || '' };
     }
 
     const split = {};
     const sp = await query(
-      `SELECT p.match_id, p.pick, count(*)::int AS n FROM predictions p JOIN fixtures f ON f.event_id = p.match_id
-        WHERE f.event_date >= $1 AND f.event_date < $2 GROUP BY p.match_id, p.pick`, [new Date(ws), new Date(we)]);
+      `SELECT p.match_id, p.pick, count(*)::int AS n FROM predictions p JOIN (${fx}) f ON f.id = p.match_id
+        WHERE f.ts >= $1 AND f.ts < $2 GROUP BY p.match_id, p.pick`, [new Date(ws), new Date(we)]);
     for (const r of sp.rows) (split[r.match_id] ||= { home: 0, draw: 0, away: 0 })[r.pick] = r.n;
 
     // last week's leaderboard: every pick on a finished game of last week, scored in JS so the rule can change later
     const lw = await query(
-      `SELECT p.user_id, p.pick, p.note, f.home_team_score AS hs, f.away_team_score AS "as",
+      `SELECT p.user_id, p.pick, p.note, f.hs, f.aw,
               u.handle, u.display_name, u.avatar_url, u.updated_at AS u_updated
          FROM predictions p
-         JOIN fixtures f ON f.event_id = p.match_id
+         JOIN (${fx}) f ON f.id = p.match_id
          JOIN users u ON u.user_id = p.user_id
-        WHERE f.event_date >= $1 AND f.event_date < $2 AND f.status_id = ANY($3)`, [new Date(pw), new Date(ws), FINISHED]);
+        WHERE f.ts >= $1 AND f.ts < $2 AND f.status = ANY($3)`, [new Date(pw), new Date(ws), FINISHED]);
     const total = new Map();
     for (const r of lw.rows) {
       const t = total.get(r.user_id) || { r, points: 0, n: 0 };
-      t.points += pointsFor({ pick: r.pick, note: r.note }, { hs: r.hs, as: r.as }); t.n++;
+      t.points += pointsFor({ pick: r.pick, note: r.note }, { hs: r.hs, as: r.aw }); t.n++;
       total.set(r.user_id, t);
     }
     const leaders = [...total.values()]
@@ -72,9 +73,9 @@ export async function PUT(req) {
   if (hasNote && note.length > MAX_NOTE) return fail(400, `Predictions are limited to ${MAX_NOTE} characters`);
   try {
     const now = Date.now();
-    const { rows: fx } = await query('SELECT event_date FROM fixtures WHERE event_id = $1', [matchId]);
-    if (!fx[0]) return fail(404, 'That match does not exist');
-    const at = new Date(fx[0].event_date).getTime();
+    const { rows: fr } = await query(`SELECT ts FROM (${await fixturesSql()}) f WHERE f.id = $1`, [matchId]);
+    if (!fr[0]) return fail(404, 'That match does not exist');
+    const at = new Date(fr[0].ts).getTime();
     if (at < weekStart(now) || at >= weekEnd(now)) return fail(400, 'You can only predict this week\u2019s games');
     if (at <= now) return fail(409, 'Kick-off has passed: predictions for this game are closed');
 
