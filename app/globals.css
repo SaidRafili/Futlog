@@ -401,7 +401,7 @@ a.c-name{display:block}a.c-name:hover{color:var(--accent)}
 .p-acts button.on{color:var(--accent)}
 .p-acts svg{fill:none;stroke:currentColor;stroke-width:2}.p-acts button.on svg{fill:var(--accent)}
 .replies{margin-top:10px;border-left:2px solid var(--line);padding-left:12px;display:grid;gap:8px;font-size:13px}
-.replies b a:hover{color:var(--accent)}.replies span{color:var(--muted);margin-left:6px;font-size:11px}
+.replies b a:hover{color:var(--accent)}.replies span{margin-left:6px;font-size:11px}
 .replies form{display:flex;gap:8px}
 .replies input{flex:1;height:30px;border-radius:8px;border:2px solid var(--line);background:var(--bg);color:var(--text);padding:0 10px;font:inherit;font-size:13px}
 .replies button{border:0;border-radius:8px;background:var(--accent-deep);padding:0 14px;cursor:pointer}
