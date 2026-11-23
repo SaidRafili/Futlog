@@ -9,7 +9,8 @@
     "import:fixtures": "node --env-file=.env.local scripts/import-fixtures.mjs",
     "db:schema": "node --env-file=.env.local scripts/apply-sql.mjs scripts/schema.sql",
     "venues:photos": "node --env-file=.env.local scripts/fetch-venue-photos.mjs",
-    "user:claim": "node --env-file=.env.local scripts/claim-user.mjs"
+    "user:claim": "node --env-file=.env.local scripts/claim-user.mjs",
+    "venues:optimize": "node --env-file=.env.local scripts/optimize-venue-photos.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
@@ -17,5 +18,8 @@
     "pg": "^8.13.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.0"
   }
 }
