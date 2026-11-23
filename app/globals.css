@@ -401,7 +401,7 @@ a.c-name{display:block}a.c-name:hover{color:var(--accent)}
 .p-acts button.on{color:var(--accent)}
 .p-acts svg{fill:none;stroke:currentColor;stroke-width:2}.p-acts button.on svg{fill:var(--accent)}
 .replies{margin-top:10px;border-left:2px solid var(--line);padding-left:12px;display:grid;gap:8px;font-size:13px}
-.replies b a:hover{color:var(--accent)}.replies span{margin-left:6px;font-size:11px}
+.replies b a:hover{color:var(--accent)}.replies span{color:var(--muted);margin-left:6px;font-size:11px}
 .replies form{display:flex;gap:8px}
 .replies input{flex:1;height:30px;border-radius:8px;border:2px solid var(--line);background:var(--bg);color:var(--text);padding:0 10px;font:inherit;font-size:13px}
 .replies button{border:0;border-radius:8px;background:var(--accent-deep);padding:0 14px;cursor:pointer}
@@ -1342,3 +1342,9 @@ a.nav-write{margin-left:6px}                    /* "Write" now sits beside the n
 .btn.ghost:hover:not(:disabled){background:var(--surf2);color:var(--text);border-color:var(--line2)}
 .pr-pick.on.won{background:var(--gold);border-color:var(--gold);color:#1a1240}
 .pr-pick.on.lost{background:transparent;border-color:var(--muted);color:var(--muted)}
+
+/* ---------- placeholder poster: shown when a match has no venue photo ---------- */
+.m-photo:not(.ph){background-image:url(/match-poster.webp);background-size:cover;background-position:center bottom;background-repeat:no-repeat}
+.m-photo:not(.ph)::after{display:none}                 /* the green pitch stripes belong to the old gradient placeholder */
+.mp-photo:not(.has-img){background-image:url(/match-poster.webp);background-size:cover;background-position:center 90%;background-repeat:no-repeat}
+.mp-photo:not(.has-img)::after{background:radial-gradient(ellipse at 70% 40%,transparent 35%,rgba(3,3,5,.45) 100%)}
