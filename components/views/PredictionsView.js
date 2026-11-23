@@ -40,7 +40,7 @@ function PredictionsPage() {
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || 'HTTP ' + res.status);
       setApi(j); setMine(j.mine || {}); setError('');
-    } catch (e) { setError(e.message); setApi(a => a || { split: {}, leaders: [] }); }
+    } catch (e) { setError(e.message); setApi(a => a || { split: {}, live: [], leaders: [] }); }
   }, []);
   useEffect(() => { load(); }, [load, who]);
 
@@ -69,21 +69,10 @@ function PredictionsPage() {
     <main id="predictionsPage">
       <div className="pr-wrap">
         <aside className="pr-side">
-          <div className="pr-box">
-            <h2>Last week’s leaders</h2>
-            <p className="pr-sub">{range(prevWeekStart(now), ws)}</p>
-            {api === null ? <p className="pr-none">Loading…</p> : api.leaders.length ? (
-              <ol className="pr-leaders">
-                {api.leaders.map(l => (
-                  <li key={l.handle}>
-                    <span className="pr-rank">{l.rank}</span>
-                    <Link href={profileHref(l.handle)} title={l.name}><Avatar name={l.name} src={l.avatar} size={24} className="pr-av" /><span>{l.handle}</span></Link>
-                    <b>{l.points}</b>
-                  </li>
-                ))}
-              </ol>
-            ) : <p className="pr-none">No leaders yet. The board is filled once a full week of predictions has been played.</p>}
-          </div>
+          <Board title="This week" sub={`${range(ws, we)} · ${api?.played ?? 0} game${api?.played === 1 ? '' : 's'} played`} rows={api?.live} defaultOpen
+            empty="No points yet. The board fills in as this week’s games finish." live />
+          <Board title="Last week’s winners" sub={range(prevWeekStart(now), ws)} rows={api?.leaders}
+            empty="No winners yet. The board is filled once a full week of predictions has been played." />
           <p className="pr-fine">The board resets every Monday at 00:00 {WEEK_ZONE}.</p>
         </aside>
 
@@ -113,6 +102,29 @@ function PredictionsPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+// A collapsible leaderboard. rows === undefined means still loading.
+function Board({ title, sub, rows, empty, defaultOpen = false, live = false }) {
+  return (
+    <details className="pr-box pr-board" open={defaultOpen}>
+      <summary>
+        <span className="pr-sum"><h2>{title}{live && <i className="pr-live" aria-label="Updating live">Live</i>}</h2><small>{sub}</small></span>
+        <svg className="pr-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 9l7 7 7-7" /></svg>
+      </summary>
+      {rows === undefined ? <p className="pr-none">Loading…</p> : rows.length ? (
+        <ol className="pr-leaders">
+          {rows.map(l => (
+            <li key={l.handle}>
+              <span className="pr-rank">{l.rank}</span>
+              <Link href={profileHref(l.handle)} title={l.name}><Avatar name={l.name} src={l.avatar} size={24} className="pr-av" /><span>{l.handle}</span></Link>
+              <b>{l.points}</b>
+            </li>
+          ))}
+        </ol>
+      ) : <p className="pr-none">{empty}</p>}
+    </details>
   );
 }
 
