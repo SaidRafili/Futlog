@@ -18,6 +18,8 @@ const FIELDS = {
   awayTeamShootoutScore: ['awayteamshootoutscore', 'awayshootoutscore'],
   statusId: ['statusid'],
   season: ['seasontype'],
+  homeTeamName: ['hometeamname'],   // optional: the name ESPN sent; lib/data.js uses it only to sanity-check team ids
+  awayTeamName: ['awayteamname'],
 };
 const REQUIRED = ['eventId', 'date', 'homeTeamId', 'awayTeamId'];
 
@@ -68,7 +70,7 @@ export async function GET() {
       const c = pick(key);
       if (!c) return `NULL AS ${quote(key)}`;
       if (key === 'date') return `${dateExpr(c)} AS ts`;
-      if (key === 'season') return `${textExpr(c)} AS ${quote(key)}`;
+      if (key === 'season' || key === 'homeTeamName' || key === 'awayTeamName') return `${textExpr(c)} AS ${quote(key)}`;
       if (key === 'venueId') return `COALESCE(${intExpr(c)}, 0) AS ${quote(key)}`;
       return `${intExpr(c)} AS ${quote(key)}`;
     });
@@ -79,7 +81,8 @@ export async function GET() {
              to_char(ts AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') AS "date",
              "leagueId", "venueId", attendance, "homeTeamId", "awayTeamId",
              "homeTeamScore", "awayTeamScore",
-             "homeTeamShootoutScore", "awayTeamShootoutScore", "statusId", season
+             "homeTeamShootoutScore", "awayTeamShootoutScore", "statusId", season,
+             "homeTeamName", "awayTeamName"
         FROM f
        ORDER BY ts DESC NULLS LAST, "eventId" DESC`;
 
