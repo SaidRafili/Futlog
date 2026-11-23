@@ -1,5 +1,13 @@
 export const metadata = { title: 'About · Futlog' };
 
+// same accounts as the footer (components/Footer.js); TikTok handle is a guess: change it if the account is named differently
+const SOCIAL = [
+  ['X', 'https://x.com/futloogcom', '@futloogcom'],
+  ['Instagram', 'https://instagram.com/futloog', '@futloog'],
+  ['LinkedIn', 'https://www.linkedin.com/company/futloog', 'Futlog'],
+  ['TikTok', 'https://www.tiktok.com/@futloog', '@futloog'],
+];
+
 export default function Page() {
   return (
     <main className="info">
@@ -69,8 +77,12 @@ export default function Page() {
           <p><a className="lnk" href="mailto:futlogcom@gmail.com">futlogcom@gmail.com</a></p>
         </div>
         <div className="card">
-          <b>X</b>
-          <p><a className="lnk" href="https://x.com/futloogcom" target="_blank" rel="noopener noreferrer">@futloogcom</a></p>
+          <b>Follow us</b>
+          <ul className="info-social">
+            {SOCIAL.map(([name, href, label]) => (
+              <li key={name}><span>{name}</span><a className="lnk" href={href} target="_blank" rel="noopener noreferrer">{label}</a></li>
+            ))}
+          </ul>
         </div>
         <p className="muted">Reporting a mistake? Include a link to the match or article.</p>
       </aside>

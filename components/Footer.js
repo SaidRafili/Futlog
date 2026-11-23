@@ -4,7 +4,8 @@ import ThemeToggle from './ThemeToggle';
 const social = [
   ['X / Twitter', 'https://x.com/futloogcom'],
   ['Instagram', 'https://instagram.com/futloog'],
-  ['Linkedin', 'https://www.linkedin.com/company/futloog']
+  ['Linkedin', 'https://www.linkedin.com/company/futloog'],
+  ['TikTok', 'https://www.tiktok.com/@futloog']
 ];
 
 export default function Footer() {

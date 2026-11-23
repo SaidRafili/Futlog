@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-// Dark / light switch. The choice is kept in localStorage; the first visit follows the device setting.
+// Dark / light switch. The choice is kept in localStorage; the first visit is always light.
 // The class is applied before the first paint by the small script in app/layout.js, so there is no flash.
 const ICON = {
   dark: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>,
@@ -11,7 +11,7 @@ const ICON = {
 export function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   const m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.setAttribute('content', t === 'light' ? '#f4f3fb' : '#0b0b19');
+  if (m) m.setAttribute('content', t === 'light' ? '#ece9f8' : '#0b0b19');
 }
 
 export default function ThemeToggle() {

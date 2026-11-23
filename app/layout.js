@@ -17,15 +17,15 @@ export const metadata = {
   // Icons come from the file conventions in /app: icon.png, apple-icon.png and favicon.ico (Next adds the <link> tags itself),
   // plus app/manifest.js for "add to home screen".
 };
-export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#0b0b19' };
+export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#ece9f8' };
 
 
 export default function RootLayout({ children }) {
   return (
-  <html lang="en" data-theme="dark" suppressHydrationWarning>
+  <html lang="en" data-theme="light" suppressHydrationWarning>
     <head>
-      {/* sets the saved (or device) colour theme before the first paint, so the page never flashes the wrong one */}
-      <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('futlog-theme');if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.setAttribute('data-theme',t);if(t==='light'){var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content','#f4f3fb')}}catch(e){}` }} />
+      {/* sets the saved colour theme (light unless the visitor chose dark) before the first paint, so the page never flashes the wrong one */}
+      <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('futlog-theme');if(t!=='light'&&t!=='dark')t='light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content','#0b0b19')}}catch(e){}` }} />
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link
         rel="preconnect"
