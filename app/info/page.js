@@ -44,7 +44,7 @@ export default function Page() {
       <section id="faq">
         <div className="sec-head"><h2>FAQ</h2></div>
         <div className="card"><b>Is Futlog free?</b><p>Yes. Browsing, logging and commenting are free.</p></div>
-        <div className="card"><b>Where does the match data come from?</b><p>Team and match details are loaded from our own data files and are added by hand for now, so some matches may be missing.</p></div>
+        <div className="card"><b>Where does the match data come from?</b><p>Team and match details are loaded automatically from various resources periodically</p></div>
         <div className="card"><b>How do I report a mistake?</b><p>Use the contact details below and include a link to the match or article.</p></div>
       </section>
 
