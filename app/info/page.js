@@ -5,17 +5,40 @@ export default function Page() {
     <main className="info">
       <section id="about">
         <h1>About Futlog</h1>
-        <p className="lead">Futlog is a diary for football fans. Log the matches you watch, rate them, write reviews, and see what other people made of the same 90 minutes.</p>
+        <p className="lead">Half the planet follows football: about 3.5 billion people. Yet almost none can tell you what they watched last month. The goal you screamed at, the match with your father, the game that broke your heart: it all disappears into a scroll. We are building the place where it doesn&apos;t.</p>
+        <p style={{marginTop:12}}>Futlog is the diary and reputation layer for football fans. Log a match in seconds, rate it, review it, predict the next one. Passionate fans come to remember; knowledgeable fans come to be recognised.</p>
+      </section>
+
+      <section id="problem">
+        <div className="sec-head"><h2>The problem</h2></div>
+        <p>Fans already log, rate, debate and analyse football every single day, but in pieces: scores in one app, debates on Reddit, analysis in blogs, opinions on social media. Doing what Futlog does takes four or five apps, and none of them remembers who you are.</p>
+        <p style={{marginTop:10}}>Nobody can find the fans who truly understand the game. And clubs, media and brands spend billions on fans without a structured view of what they think. Fan engagement alone is an estimated $8 billion market, heading past $20 billion by 2030.</p>
       </section>
 
       <section id="how">
         <div className="sec-head"><h2>What you can do</h2></div>
         <ul>
-          <li>Search matches by team, competition or season, and mark them as watched or liked.</li>
-          <li>Rate a match out of 10 and join the discussion in comments and reviews.</li>
-          <li>Read match analysis and tactics articles from the community.</li>
+          <li>Log a match in seconds and mark it as watched or liked.</li>
+          <li>Rate a match out of 10 and write a review.</li>
+          <li>Predict the next match and climb the leaderboards.</li>
+          <li>Join the discussion in comments and read match analysis and tactics articles from the community.</li>
           <li>Follow other fans and keep up with them in your feed.</li>
         </ul>
+        <p style={{marginTop:10}}>Predictions and leaderboards reveal who really understands football and bring them together in one healthier community. Every action creates structured data nobody else has: not just what happened, but what fans thought, and who was right.</p>
+      </section>
+
+      <section id="proof">
+        <div className="sec-head"><h2>A proven model</h2></div>
+        <p>Letterboxd took film from 1.8 million members in 2020 to over 30 million, and is reportedly being sold at around a $250 million valuation. Now football is validating it. In August 2026, Axel Springer, the group behind BILD and Transfermarkt, took a majority stake in Futez, a Brazilian app launched in 2025, with over 100,000 users, 900,000 match ratings and 4.5 million player ratings.</p>
+        <p style={{marginTop:10}}>Three lessons: demand is real, strategic buyers exist, and no one has locked up the category yet. Futez is built around ratings. Futlog goes further: predictions, leaderboards and expert recognition, to find the best football minds, starting in Azerbaijan, where we are local.</p>
+      </section>
+
+      <section id="roadmap">
+        <div className="sec-head"><h2>Where we&apos;re going</h2></div>
+        <div className="card"><b>1. A free community</b><p>Logging, rating, reviewing and predicting, free for every fan.</p></div>
+        <div className="card"><b>2. Premium and sponsorships</b><p>Premium subscriptions and sports-brand sponsorships. Letterboxd&apos;s paid plans cost $19 to $49 a year.</p></div>
+        <div className="card"><b>3. B2B fan insight</b><p>Anonymised fan-sentiment and prediction data for clubs, media and federations, who today rely on surveys. Reports on the Futez deal describe exactly this asset: structured supporter data.</p></div>
+        <p style={{marginTop:10}}>Football doesn&apos;t end at the final whistle, and every fan&apos;s journey deserves a place. Thank you.</p>
       </section>
 
       <section id="faq">
