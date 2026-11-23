@@ -5,7 +5,7 @@
   --card:#12122a; --gold:#ffd84a;
   --surf2:#1b1a3d; --surf3:#15142b; --chip:#111024; --media:#0e0e22; --hover:#181838;
   --line2:#3d3980; --seg:#2b2861; --handle:#7f6bd6; --text-soft:#cfcbee; --on-accent:#1a1240;
-  --topbar-bg:var(--bg); color-scheme:dark;
+  --topbar-bg:var(--bg); --btn-purple:#5b4fd6; --btn-purple-hover:#7a6af0; color-scheme:dark;
 }
 /* light theme: same tokens, different values. Set by <html data-theme="light"> (see ThemeToggle in the footer) */
 html[data-theme="light"]{
@@ -13,7 +13,7 @@ html[data-theme="light"]{
   --accent:#5a35d6; --accent-deep:#4a35c4; --line:#b9b2dc; --line2:#9d94cc;
   --text:#120f29; --muted:#4a4570; --text-soft:#2c2750; --handle:#5a42c0;
   --surf2:#dcd6f4; --surf3:#e9e5f8; --chip:#e8e4f8; --media:#d9d5ee; --hover:#ece8fa; --seg:#b7afe0;
-  --on-accent:#ffffff; --gold:#d99a00;
+  --on-accent:#ffffff; --gold:#d99a00; --btn-purple:#4a35c4; --btn-purple-hover:#38279e;
   color-scheme:light;
 }
 html[data-theme="light"] .post.compact:hover,html[data-theme="light"] .pin:hover{box-shadow:0 8px 22px rgba(60,40,140,.16)}
@@ -1329,3 +1329,16 @@ a.nav-write{margin-left:6px}                    /* "Write" now sits beside the n
   .pr-head select{font-size:16px;height:36px}
 }
 @media (prefers-reduced-motion:reduce){.pr-chev svg,.pr-pick,.pr-caret{transition:none}}
+
+/* ---------- purple buttons: always white text (both themes) ----------
+   One purple fill + one hover fill for every button / pill / badge that sits on purple, so the label never turns dark. */
+.btn.primary,.btn:hover:not(:disabled),.follow.on,.follow:hover,.pf-edit:hover,.signin-btn,.pc-edit,.cmp-post,a.nav-write,.composer button,.fd-row button,
+.replies button,.pr-live,.pr-vs,.pr-pick.on,.tabs button[aria-selected=true] .tab-count,.m-top,.cs-sort button.on,.sr-tabs button[aria-selected=true],
+.pf-seg a.on,.theme-switch button[aria-pressed=true],.pr-note-foot button,.nf-links .btn,.au-go.primary{background:var(--btn-purple);color:#fff;border-color:var(--btn-purple)}
+.btn.primary:hover:not(:disabled),.signin-btn:hover,.pc-edit:hover,.cmp-post:hover:not(:disabled),a.nav-write:hover,.composer button:hover,.fd-row button:hover,
+.replies button:hover,.nf-links .btn:hover,.pr-note-foot button:hover,.btn:hover:not(:disabled),.follow:hover,.pf-edit:hover,.follow.on:hover{background:var(--btn-purple-hover);color:#fff;border-color:var(--btn-purple-hover)}
+.search button:hover,.pf-chips a:hover,.au-pw button:hover,.cmp-alt:hover,.cmp-chip button:hover,.fd-tabs .fd-shuffle:hover,.lg-pill:hover,.lg-pill:focus-visible,.pr-more-btn:hover{background:var(--btn-purple);color:#fff}
+.btn.primary svg,.signin-btn svg,a.nav-write svg,.composer button svg,.fd-row button svg,.replies button svg,.cmp-post svg,.pr-vs svg,.search button:hover svg{fill:currentColor;stroke:currentColor}
+.btn.ghost:hover:not(:disabled){background:var(--surf2);color:var(--text);border-color:var(--line2)}
+.pr-pick.on.won{background:var(--gold);border-color:var(--gold);color:#1a1240}
+.pr-pick.on.lost{background:transparent;border-color:var(--muted);color:var(--muted)}
