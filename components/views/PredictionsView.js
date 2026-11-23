@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useData } from '../DataProvider';
 import { Avatar } from '../ui';
+import PredictionTabs from '../PredictionTabs';
 import { FINISHED, leagueName } from '@/lib/data';
 import { sendJSON } from '@/lib/profile';
 import { profileHref } from '@/lib/util';
@@ -80,10 +81,12 @@ function PredictionsPage() {
             empty="No points yet. The board fills in as this week’s games finish." live />
           <Board title="Last week’s winners" sub={range(prevWeekStart(now), ws)} rows={api?.leaders}
             empty="No winners yet. The board is filled once a full week of predictions has been played." />
+          <Link className="pr-allstats" href="/predictions/stats">Full prediction statistics <span aria-hidden="true">→</span></Link>
           <p className="pr-fine">The board resets every Monday at 00:00 {WEEK_ZONE}.</p>
         </aside>
 
         <section className="pr-main">
+          <PredictionTabs />
           <div className="pr-head">
             <div><h1>Predictions</h1><p>Week of {range(ws, we)}</p></div>
             {leagues.length > 1 && (
