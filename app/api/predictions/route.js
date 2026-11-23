@@ -11,23 +11,25 @@ export const runtime = 'nodejs';
 const FINISHED = [28, 45, 46, 47];      // same statuses as FINISHED in lib/data.js
 const LEADERS = 10;
 
-// Top predictors over finished games with kick-off in [from, to).
-async function board(fx, from, to) {
+// Top predictors over games with kick-off in [from, to). Only finished games score; with `everyone` anybody who
+// picked any game in the window is listed (0 points until a game they picked has finished).
+async function board(fx, from, to, everyone = false) {
   const { rows } = await query(
-    `SELECT p.user_id, p.pick, p.note, f.hs, f.aw,
+    `SELECT p.user_id, p.pick, p.note, f.hs, f.aw, f.status,
             u.handle, u.display_name, u.avatar_url, u.updated_at AS u_updated
        FROM predictions p
        JOIN (${fx}) f ON f.id = p.match_id
        JOIN users u ON u.user_id = p.user_id
-      WHERE f.ts >= $1 AND f.ts < $2 AND f.status = ANY($3)`, [new Date(from), new Date(to), FINISHED]);
+      WHERE f.ts >= $1 AND f.ts < $2 AND ($4::boolean OR f.status = ANY($3))`, [new Date(from), new Date(to), FINISHED, everyone]);
   const total = new Map();
   for (const r of rows) {
     const t = total.get(r.user_id) || { r, points: 0, n: 0 };
-    t.points += pointsFor({ pick: r.pick, note: r.note }, { hs: r.hs, as: r.aw }); t.n++;
+    if (FINISHED.includes(r.status)) t.points += pointsFor({ pick: r.pick, note: r.note }, { hs: r.hs, as: r.aw });
+    t.n++;
     total.set(r.user_id, t);
   }
   return [...total.values()]
-    .filter(t => t.points > 0)
+    .filter(t => everyone || t.points > 0)
     .sort((a, b) => b.points - a.points || b.n - a.n || a.r.handle.localeCompare(b.r.handle))
     .slice(0, LEADERS)
     .map((t, i) => ({ rank: i + 1, ...person(t.r), points: t.points }));
@@ -62,7 +64,7 @@ export async function GET() {
     // leaderboards: every pick on a finished game in the window, scored in JS so the rule can change later.
     // "live" = this week so far (grows as games finish), "leaders" = last week's final board.
     const [live, leaders, played] = await Promise.all([
-      board(fx, ws, Math.min(we, now + 1)),
+      board(fx, ws, we, true),
       board(fx, pw, ws),
       query(`SELECT count(*)::int AS n FROM (${fx}) f WHERE f.ts >= $1 AND f.ts < $2 AND f.status = ANY($3)`, [new Date(ws), new Date(we), FINISHED]),
     ]);
@@ -106,5 +108,20 @@ export async function PUT(req) {
       if (!row) return fail(400, 'Pick an outcome first, then add your written prediction');
     }
     return json({ matchId, pick: row.pick, note: row.note || '' });
+  } catch (err) { return dbError(err); }
+}
+
+// DELETE /api/predictions   body { matchId }  -> withdraw your pick (and its written prediction) until kick-off
+export async function DELETE(req) {
+  const g = await requireUser(req, 'Sign in to change a prediction'); if (g.res) return g.res;
+  const b = await readBody(req); if (!b) return fail(400, 'Send a JSON body');
+  const matchId = posInt(b.matchId); if (!matchId) return fail(400, 'Bad matchId');
+  try {
+    const now = Date.now();
+    const { rows: fr } = await query(`SELECT ts FROM (${await fixturesSql()}) f WHERE f.id = $1`, [matchId]);
+    if (!fr[0]) return fail(404, 'That match does not exist');
+    if (new Date(fr[0].ts).getTime() <= now) return fail(409, 'Kick-off has passed: predictions for this game are closed');
+    await query(`DELETE FROM predictions WHERE user_id = $1 AND match_id = $2`, [g.me.user_id, matchId]);
+    return json({ matchId, pick: null, note: '' });
   } catch (err) { return dbError(err); }
 }

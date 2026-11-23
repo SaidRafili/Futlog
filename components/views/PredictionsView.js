@@ -59,8 +59,15 @@ function PredictionsPage() {
 
   const save = async (g, body) => {                 // throws on failure; the row shows the message
     if (!me) { openAuth('signin'); throw new Error('Sign in to make a prediction'); }
+    if (body.withdraw) {
+      await sendJSON('/api/predictions', 'DELETE', { matchId: g.id });
+      setMine(m => { const { [g.id]: _gone, ...rest } = m; return rest; });
+      load();                                           // refresh the live board and the split
+      return null;
+    }
     const r = await sendJSON('/api/predictions', 'PUT', { matchId: g.id, ...body });
     setMine(m => ({ ...m, [g.id]: { pick: r.pick, note: r.note } }));
+    load();                                             // refresh the live board and the split
     return r;
   };
 
@@ -86,7 +93,7 @@ function PredictionsPage() {
               </select>
             )}
           </div>
-          <p className="pr-how">Pick the winner, or a draw, before kick-off. You can change your pick until the game starts, and add a few words if you want to explain it.</p>
+          <p className="pr-how">Pick the winner, or a draw, before kick-off. You can change or withdraw your pick (click it again) until the game starts, and add a few words if you want to explain it.</p>
           {error && <p className="pf-note" role="alert">Could not load predictions: {error}</p>}
 
           {!list.length ? <p className="empty">{games.length ? 'No games in this competition this week.' : 'No games are scheduled for this week yet. Check back soon.'}</p> : visible.map(g => {
@@ -143,9 +150,9 @@ function Row({ g, closed, mine, split, onSave }) {
 
   const done = FINISHED.has(g.status), result = done ? outcomeOf(g.hs, g.as) : null;
   const pick = async v => {
-    if (closed || busy || v === mine?.pick) return;
+    if (closed || busy) return;
     setBusy(true); setErr('');
-    try { await onSave({ pick: v }); } catch (e) { setErr(e.message); } finally { setBusy(false); }
+    try { await onSave(v === mine?.pick ? { withdraw: true } : { pick: v }); if (v === mine?.pick) { setText(''); setSaved(false); } } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
   const saveNote = async e => {
     e.preventDefault(); if (busy) return;
@@ -172,7 +179,7 @@ function Row({ g, closed, mine, split, onSave }) {
           {opts.map(([v, label, full]) => {
             const on = mine?.pick === v;
             return (
-              <button key={v} role="radio" aria-checked={on} disabled={closed} title={full}
+              <button key={v} role="radio" aria-checked={on} disabled={closed} title={on && !closed ? `${full} (click again to withdraw)` : full}
                 className={`pr-pick${on ? ' on' : ''}${done && result === v ? ' won' : ''}${done && on && result !== v ? ' lost' : ''}`} onClick={() => pick(v)}>
                 {label}
               </button>
