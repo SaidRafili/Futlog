@@ -40,8 +40,8 @@ export function FeedMatch({ m }) {
 }
 
 // One feed post: text, pictures, tagged match, like / reply / share, and edit + delete for the author.
-// Replies are comments of type 'post'. `mark` highlights search words (search results). `onEdit` / `onDelete` are async and may throw.
-export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onReplies, mark, compact, pin }) {
+// Replies are comments of type 'post'. `noReplies` = do not render the reply thread inside the card (the post page shows it as its own column section). `mark` highlights search words (search results). `onEdit` / `onDelete` are async and may throw.
+export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onReplies, mark, compact, pin, noReplies }) {
   const [editing, setEditing] = useState(false), [v, setV] = useState(p.body), [err, setErr] = useState(''), [confirm, setConfirm] = useState(false);
   const save = async e => {
     e.preventDefault();
@@ -109,7 +109,7 @@ export default function PostCard({ p, m, isOpen, onToggle, onEdit, onDelete, onR
           {p.mine && !editing && onEdit && <button onClick={() => setEditing(true)}>Edit</button>}
           {p.mine && onDelete && (confirm ? <><button onClick={del} style={{ color: '#ff8b94' }}>Delete?</button><button onClick={() => setConfirm(false)}>No</button></> : <button onClick={() => setConfirm(true)}>Delete</button>)}
         </div>
-        {isOpen && <div className="replies"><CommentSection type="post" id={p.id} placeholder="Write a reply" max={280} onCount={onReplies} /></div>}
+        {isOpen && !noReplies && <div className="replies"><CommentSection type="post" id={p.id} placeholder="Write a reply" max={280} onCount={onReplies} /></div>}
       </div>
     </article>
   );

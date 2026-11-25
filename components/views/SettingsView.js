@@ -30,12 +30,12 @@ function Settings({ handle }) {
   const [saved, setSaved] = useState(null);          // what is in the database (null = no row yet)
   const [phase, setPhase] = useState('loading');     // loading | ready | error
   const [loadError, setLoadError] = useState('');
-  const [form, setForm] = useState({ name: '', bio: '', location: '', favTeamId: '', bannerHue: null });
+  const [form, setForm] = useState({ name: '', bio: '', location: '', favTeamId: '', bannerHue: null, notifyReplies: true });
   const [pending, setPending] = useState({});        // { avatar?, banner? }: a new data URL, or null = remove; absent = unchanged
   const [busy, setBusy] = useState(''), [msg, setMsg] = useState(null), [fields, setFields] = useState({});
   const avatarIn = useRef(null), bannerIn = useRef(null);
 
-  const toForm = u => ({ name: u?.name ?? '', bio: u?.bio ?? '', location: u?.location ?? '', favTeamId: u?.favTeamId ?? '', bannerHue: u?.bannerHue ?? null });
+  const toForm = u => ({ name: u?.name ?? '', bio: u?.bio ?? '', location: u?.location ?? '', favTeamId: u?.favTeamId ?? '', bannerHue: u?.bannerHue ?? null, notifyReplies: u?.notifyReplies !== false });
 
   useEffect(() => {
     let dead = false;
@@ -51,7 +51,7 @@ function Settings({ handle }) {
   const avatar = pending.avatar !== undefined ? pending.avatar : saved?.avatar ?? null;
   const banner = pending.banner !== undefined ? pending.banner : saved?.banner ?? null;
   const base = toForm(saved);
-  const dirty = Object.keys(pending).length > 0 || ['name', 'bio', 'location', 'favTeamId', 'bannerHue'].some(k => String(form[k] ?? '') !== String(base[k] ?? ''));
+  const dirty = Object.keys(pending).length > 0 || ['name', 'bio', 'location', 'favTeamId', 'bannerHue', 'notifyReplies'].some(k => String(form[k] ?? '') !== String(base[k] ?? ''));
 
   const pickImage = async (kind, file, spec) => {
     if (!file) return;
@@ -65,7 +65,7 @@ function Settings({ handle }) {
     e.preventDefault();
     setBusy('save'); setMsg(null); setFields({});
     try {
-      const body = { name: form.name, bio: form.bio, location: form.location, favTeamId: form.favTeamId === '' ? null : +form.favTeamId, bannerHue: form.bannerHue, ...pending };
+      const body = { name: form.name, bio: form.bio, location: form.location, favTeamId: form.favTeamId === '' ? null : +form.favTeamId, bannerHue: form.bannerHue, notifyReplies: form.notifyReplies, ...pending };
       const { user } = await sendJSON(`/api/users/${handle}`, 'PUT', body);
       setSaved(user); setForm(toForm(user)); setPending({});
       refreshMe();
@@ -156,6 +156,14 @@ function Settings({ handle }) {
               </select>
               {fields.favTeamId && <p className="st-err">{fields.favTeamId}</p>}
             </div>
+          </div>
+        </section>
+
+        <section className="st-card" aria-labelledby="st-mail">
+          <h2 id="st-mail">Notifications</h2>
+          <div className="st-row">
+            <label className="st-lab" htmlFor="st-notify"><b>Email me about replies</b><small>Get a Gmail-style email when someone replies to your post or comment, or comments on your article or review.</small></label>
+            <input id="st-notify" type="checkbox" className="st-check" checked={form.notifyReplies} onChange={e => set('notifyReplies', e.target.checked)} />
           </div>
         </section>
 

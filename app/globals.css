@@ -710,7 +710,6 @@ img.r-avatar{border-radius:50%;object-fit:cover;vertical-align:middle;margin-rig
 
 
 /* ---------- feed v2: Twitter-style composer, pictures, rich post text ---------- */
-.fd-wrap.pv{grid-template-columns:minmax(0,1fr);max-width:680px}
 .pv-back{margin-bottom:12px;font-size:13px}.pv-back a{color:var(--muted)}.pv-back a:hover{color:var(--accent)}
 .cmp{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;background:var(--panel);padding:14px 16px;margin-bottom:16px;border-left:4px solid var(--accent-deep)}
 .cmp.drag{outline:2px dashed var(--accent);outline-offset:-6px}
@@ -1448,3 +1447,22 @@ html[data-theme="light"] .pr-allstats:hover{box-shadow:none}
   .ps-pts{font-size:16px}
 }
 @media (max-width:420px){.ps-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ---------- post page: post + replies in one column, recommended posts on the right ---------- */
+.fd-wrap.pv{align-items:start}
+.pv-main{min-width:0}
+.pv-replies{margin-top:20px}
+.pv-replies h2{font:600 15px 'Poppins',sans-serif;color:var(--accent);padding-bottom:8px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.pv-replies h2 span{color:var(--muted);font-weight:400;margin-left:4px}
+.pv-replies .cs{max-width:none}
+.pv-side{position:sticky;top:64px;max-height:calc(100vh - 80px);overflow-y:auto;scrollbar-width:thin}
+.pv-rec .empty{padding:8px 0}
+.pv-rec-list{display:grid;gap:12px}
+.pv-rec-list .post.compact{height:auto}
+.pv-rec-list .post.compact:hover{transform:none}
+@media (max-width:900px){
+  .fd-wrap.pv .pv-side{display:block;order:0;position:static;max-height:none;overflow:visible}
+}
+/* settings: e-mail toggle */
+.st-check{width:20px;height:20px;accent-color:var(--accent);cursor:pointer}
+.comment.flash{outline:2px solid var(--accent);outline-offset:2px;transition:outline-color 1s}

@@ -1,4 +1,6 @@
+import { after } from 'next/server';
 import { query } from '@/lib/db';
+import { notifyComment } from '@/lib/notify';
 import { getSessionUser } from '@/lib/auth';
 import { COMMENT_SELECT, MAX_COMMENT, TARGETS, bigId, commentOut, loadComment, requireUser, targetExists } from '@/lib/content';
 import { dbError, fail, json, readBody } from '@/lib/users';
@@ -47,16 +49,19 @@ export async function POST(req) {
   if (text.length > MAX_COMMENT) return fail(400, `Comments are limited to ${MAX_COMMENT} characters`);
   try {
     if (!(await targetExists(type, id, g.me.user_id))) return fail(404, 'That ' + type + ' does not exist');
-    let parent = null;
+    let parent = null, repliedTo = null;
     if (b.parentId != null) {
       const pid = bigId(b.parentId); if (!pid) return fail(400, 'Bad parentId');
       const p = (await query('SELECT comment_id, parent_id, target_type, target_id FROM comments WHERE comment_id = $1', [pid])).rows[0];
       if (!p || p.target_type !== type || String(p.target_id) !== String(id)) return fail(400, 'You can only reply to a comment on the same page');
+      repliedTo = pid;                                // the person who is told: the comment you actually answered
       parent = p.parent_id ?? p.comment_id;          // replies are one level deep: replying to a reply attaches to the top comment
     }
     const { rows } = await query(
       `INSERT INTO comments (user_id, target_type, target_id, parent_id, body) VALUES ($1, $2, $3, $4, $5) RETURNING comment_id`,
       [g.me.user_id, type, id, parent, text]);
-    return json({ comment: await loadComment(rows[0].comment_id, g.me.user_id) }, 201);
+    const newId = rows[0].comment_id;
+    after(() => notifyComment(newId, repliedTo));     // Gmail notification, sent after the response so posting stays fast
+    return json({ comment: await loadComment(newId, g.me.user_id) }, 201);
   } catch (err) { return dbError(err); }
 }

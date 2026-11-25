@@ -1,6 +1,6 @@
 import { query } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { MAX_AVATAR, MAX_BANNER, authorize, checkImage, cleanHandle, dbError, fail, findUser, imageSrc, json, liteFor, publicUser, readBody } from '@/lib/users';
+import { MAX_AVATAR, MAX_BANNER, authorize, checkImage, cleanHandle, dbError, fail, findUser, imageSrc, json, liteFor, ownerUser, publicUser, readBody } from '@/lib/users';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -52,7 +52,7 @@ export async function GET(req, { params }) {
     ]);
 
     return json({
-      user: publicUser(u),
+      user: isOwner ? ownerUser(u) : publicUser(u),
       counts: { ...counts.rows[0], watched: by('watched').length, liked: by('liked').length, onsite: by('onsite').length, reviews: reviews.rowCount, articles: articles.rows.filter(r => r.status === 'published').length },
       watched: by('watched'), liked: by('liked'), onsite: by('onsite'),
       reviews: reviews.rows.map(r => ({ id: r.id, matchId: r.match_id, title: r.title, rating: r.rating, at: r.at })),
@@ -91,6 +91,7 @@ export async function PUT(req, { params }) {
     const v = b.bannerHue === null ? null : Number(b.bannerHue);
     v === null || (Number.isInteger(v) && v >= 0 && v < 360) ? set('banner_hue', v) : errors.bannerHue = 'Hue must be 0-359';
   }
+  if (b.notifyReplies !== undefined) { typeof b.notifyReplies === 'boolean' ? set('notify_replies', b.notifyReplies) : errors.notifyReplies = 'Must be on or off'; }
   for (const [key, col, max] of [['avatar', 'avatar_url', MAX_AVATAR], ['banner', 'banner_url', MAX_BANNER]]) {
     const r = checkImage(b[key], max);
     if (r.error) errors[key] = `Image ${r.error}`; else if (!r.skip) set(col, r.value);
@@ -104,6 +105,6 @@ export async function PUT(req, { params }) {
       catch (err) { if (err.code === '23503') return fail(400, 'Some fields are invalid', { fields: { favTeamId: 'Unknown team' } }); throw err; }
     }
     const u = await findUser(handle);
-    return json({ user: publicUser(u) });
+    return json({ user: ownerUser(u) });
   } catch (err) { return dbError(err); }
 }

@@ -1,6 +1,6 @@
 import { query } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { MAX_POST, POST_SELECT, checkPostImages, loadPost, posInt, postOut, requireUser, withTx } from '@/lib/content';
+import { MAX_POST, POST_SELECT, bigId, checkPostImages, loadPost, posInt, postOut, requireUser, withTx } from '@/lib/content';
 import { cleanHandle, dbError, fail, json, readBody } from '@/lib/users';
 import { parseSeed, pickRandom } from '@/lib/shuffle';
 
@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // GET /api/posts?tab=latest|top|following|mix&matchId=123&handle=alice&limit=50
+//     &exclude=55 leaves that post out (the "recommended posts" box on the post page)
 //     tab=mix -> a weighted random sample of recent posts (liked / discussed / fresh posts come up more often, never the same author twice in a row).
 //                Different on every request; pass &seed=123 to get the same mix again.
 export async function GET(req) {
@@ -18,6 +19,7 @@ export async function GET(req) {
     const where = [], args = [meId];
     if (sp.get('matchId')) { const m = posInt(sp.get('matchId')); if (!m) return fail(400, 'Bad matchId'); args.push(m); where.push(`p.match_id = $${args.length}`); }
     if (sp.get('handle')) { const h = cleanHandle(sp.get('handle')); if (!h) return json({ posts: [] }); args.push(h); where.push(`u.handle = $${args.length}`); }
+    if (sp.get('exclude')) { const x = bigId(sp.get('exclude')); if (x) { args.push(x); where.push(`p.post_id <> $${args.length}`); } }   // e.g. the post you are reading
     if (tab === 'following') {
       if (!me) return json({ posts: [] });
       where.push(`p.user_id IN (SELECT followee_id FROM follows WHERE follower_id = $1::bigint)`);

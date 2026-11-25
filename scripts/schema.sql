@@ -389,3 +389,6 @@ CREATE TABLE IF NOT EXISTS predictions (
 CREATE INDEX IF NOT EXISTS predictions_match_idx ON predictions (match_id);
 DROP TRIGGER IF EXISTS predictions_set_updated_at ON predictions;
 CREATE TRIGGER predictions_set_updated_at BEFORE UPDATE ON predictions FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ---- e-mail notifications: send a Gmail message when someone replies to / comments on your content (safe to re-run) ----
+ALTER TABLE users ADD COLUMN IF NOT EXISTS notify_replies BOOLEAN NOT NULL DEFAULT TRUE;   -- Settings -> "Email me when someone replies"

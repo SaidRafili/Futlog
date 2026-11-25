@@ -23,6 +23,11 @@ export default function CommentSection({ type, id, placeholder = 'Add a comment'
     } catch (e) { setError(e.message); setList(l => l || []); }
   }, [type, id, sort]);
   useEffect(() => { if (meReady) load(); }, [load, meReady, me?.handle]);   // reload when signing in/out so "liked" and "mine" are right
+  useEffect(() => {          // arriving from an e-mail link (#comment-123): scroll to that comment once the list is on screen
+    if (!list || typeof location === 'undefined' || !/^#comment-\d+$/.test(location.hash)) return;
+    const el = document.getElementById(location.hash.slice(1));
+    if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 2500); }
+  }, [!!list]);                                                              // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (list) onCount?.(list.length); }, [list]);            // eslint-disable-line react-hooks/exhaustive-deps
 
   const add = async (text, parentId) => {
